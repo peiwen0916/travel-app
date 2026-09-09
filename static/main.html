@@ -684,59 +684,24 @@ function exportData(){
   URL.revokeObjectURL(a.href);
 }
 async function exportPDF(){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p','mm','a4');
-  const w=210;let y=15;
-  doc.setFont('helvetica','bold');doc.setFontSize(18);
-  doc.text(D.title||'Travel Plan',w/2,y,{align:'center'});y+=10;
-  doc.setFontSize(10);doc.setFont('helvetica','normal');
-  doc.text('Exported: '+new Date().toLocaleDateString('zh-TW'),w/2,y,{align:'center'});y+=10;
-  if(D.flights&&D.flights.length){
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Flights',15,y);y+=7;
-    doc.setFont('helvetica','normal');doc.setFontSize(10);
-    D.flights.forEach(f=>{
-      doc.text((f.from||'?')+' -> '+(f.to||'?')+'  '+(f.date||'')+' '+(f.time||'')+(f.price?'  NT$'+f.price:''),15,y);y+=6;
-    });y+=4;
-  }
-  if(D.hotels&&D.hotels.length){
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Hotels',15,y);y+=7;
-    doc.setFont('helvetica','normal');doc.setFontSize(10);
-    D.hotels.forEach(h=>{
-      doc.text((h.name||'?')+'  '+(h.checkin||'')+'~'+(h.checkout||'')+(h.price?'  NT$'+h.price:''),15,y);y+=6;
-    });y+=4;
-  }
-  if(D.days&&D.days.length){
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Itinerary',15,y);y+=7;
-    D.days.forEach(d=>{
-      if(y>270){doc.addPage();y=15}
-      doc.setFont('helvetica','bold');doc.setFontSize(11);
-      doc.text((d.date||'')+' '+(d.label||''),15,y);y+=6;
-      doc.setFont('helvetica','normal');doc.setFontSize(9);
-      (d.items||[]).forEach(it=>{
-        if(y>275){doc.addPage();y=15}
-        doc.text('  '+(it.time||'')+' '+(it.title||'')+(it.note?' ('+it.note+')':''),15,y);y+=5;
-      });y+=3;
-    });y+=4;
-  }
-  if(D.shopping&&D.shopping.length){
-    if(y>240){doc.addPage();y=15}
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Shopping',15,y);y+=7;
-    doc.setFont('helvetica','normal');doc.setFontSize(9);
-    D.shopping.forEach(s=>{
-      if(y>275){doc.addPage();y=15}
-      doc.text((s.bought?'[v] ':'[ ] ')+(s.name||'?')+(s.store?' @'+s.store:'')+(s.date?' '+s.date:'')+'  NT$'+(s.tw||0),15,y);y+=5;
-    });y+=4;
-  }
-  if(D.fixed&&D.fixed.length){
-    if(y>240){doc.addPage();y=15}
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Fixed Expenses',15,y);y+=7;
-    doc.setFont('helvetica','normal');doc.setFontSize(9);
-    D.fixed.forEach(f=>{
-      if(y>275){doc.addPage();y=15}
-      doc.text((f.name||'?')+'  '+(f.cur||'TWD')+' '+(f.amt||0)+(f.paid_by?'  paid by '+f.paid_by:''),15,y);y+=5;
-    });
-  }
-  doc.save((D.title||'travel')+'.pdf');
+  const btn=event.target;btn.textContent='⏳ 匯出中...';btn.disabled=true;
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p','mm','a4');
+    const pw=210,ph=297;
+    const el=document.getElementById('appContent');
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff'});
+    const imgData=canvas.toDataURL('image/jpeg',0.85);
+    const imgW=pw;
+    const imgH=(canvas.height*pw)/canvas.width;
+    let y=0;
+    while(y<imgH){
+      doc.addImage(imgData,'JPEG',0,-y,imgW,imgH);
+      if(y+ph<imgH) doc.addPage();
+      y+=ph;
+    }
+    doc.save((D.title||'travel')+'.pdf');
+  }finally{btn.textContent='📄';btn.disabled=false}
 }
 function importData(e){
   const file=e.target.files[0];
