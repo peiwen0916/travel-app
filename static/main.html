@@ -446,6 +446,7 @@ async function showPlanSelector(){
 
   list.innerHTML=plans.map(p=>{
     const d=new Date(p.updated_at);
+    d.setHours(d.getHours()+8);
     const dateStr=d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
     return `
       <div class="plan-card" onclick="selectPlan(${p.id})">
@@ -689,17 +690,35 @@ async function exportPDF(){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p','mm','a4');
     const pw=210,ph=297;
-    const el=document.getElementById('appContent');
-    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff'});
-    const imgData=canvas.toDataURL('image/jpeg',0.85);
-    const imgW=pw;
-    const imgH=(canvas.height*pw)/canvas.width;
-    let y=0;
-    while(y<imgH){
-      doc.addImage(imgData,'JPEG',0,-y,imgW,imgH);
-      if(y+ph<imgH) doc.addPage();
-      y+=ph;
+    const pages=['itinerary','shopping','budget','weather','map','tips'];
+    const labels=['📅 行程','🛒 購物','💰 花費','🌤️ 天氣','🗺️ 地圖','📌 攻略'];
+    const currentTab=document.querySelector('.tab.on')?.dataset.p||'itinerary';
+    for(let pi=0;pi<pages.length;pi++){
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+      const page=document.getElementById('p-'+pages[pi]);
+      const tab=document.querySelector('[data-p="'+pages[pi]+'"]');
+      if(!page||!tab)continue;
+      page.classList.add('on');tab.classList.add('on');
+      await new Promise(r=>setTimeout(r,100));
+      const canvas=await html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#ffffff'});
+      const imgData=canvas.toDataURL('image/jpeg',0.85);
+      const imgW=pw-20;
+      const imgH=(canvas.height*imgW)/canvas.width;
+      let y=10;
+      if(pi>0)doc.addPage();
+      doc.setFontSize(14);doc.text(labels[pi],pw/2,10,{align:'center'});
+      let imgY=15;
+      while(imgY<imgH+15){
+        doc.addImage(imgData,'JPEG',10,15-imgY,imgW,imgH);
+        if(imgY+ph-15<imgH+15)doc.addPage();
+        imgY+=ph-15;
+      }
     }
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    document.getElementById('p-'+currentTab)?.classList.add('on');
+    document.querySelector('[data-p="'+currentTab+'"]')?.classList.add('on');
     doc.save((D.title||'travel')+'.pdf');
   }finally{btn.textContent='📄';btn.disabled=false}
 }
@@ -844,7 +863,7 @@ function renderShopping(){
   c.innerHTML=D.shopping.map((s,i)=>{
     const cur=s.cur||'KRW';
     const localPrice=cur==='KRW'?s.kr:cur==='JPY'?(s.jpy||0):cur==='USD'?(s.usd||0):s.tw;
-    const photoHtml=s.photo?'<div style="margin-top:6px"><img src="'+s.photo+'" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px"></div>':'';
+    const photoHtml=s.photo?'<div style="margin-top:6px"><img src="'+s.photo+'" style="max-height:189px;width:auto;aspect-ratio:3/4;object-fit:cover;border-radius:8px"></div>':'';
     return `
     <div class="item" style="opacity:${s.bought?0.6:1}">
       <div class="item-head">
