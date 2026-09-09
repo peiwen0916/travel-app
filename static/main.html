@@ -156,6 +156,7 @@ body.locked .item .split-info{width:100%}
   </div>
   <div class="plan-actions" style="justify-content:center;margin-top:16px">
     <button class="btn btn-primary" onclick="createPlan()">＋ 建立新行程</button>
+    <button class="btn btn-outline" onclick="showChangePassword()">🔑 改密碼</button>
     <button class="btn btn-outline" onclick="doLogout()">登出</button>
     <button class="btn btn-outline" id="adminBtn" style="display:none" onclick="showAdminPanel()">👑 管理</button>
   </div>
@@ -483,6 +484,32 @@ async function deletePlanConfirm(id, title){
 function doLogout(){
   localStorage.clear();
   window.location.href='/';
+}
+
+async function showChangePassword(){
+  const list = document.getElementById('planList');
+  let html = '<div class="card"><div class="card-title">🔑 修改密碼</div>';
+  html += '<div style="margin-bottom:8px"><input id="oldPwd" type="password" placeholder="舊密碼" style="width:100%"></div>';
+  html += '<div style="margin-bottom:8px"><input id="newPwd" type="password" placeholder="新密碼（至少4字元）" style="width:100%"></div>';
+  html += '<div style="margin-bottom:8px"><input id="newPwd2" type="password" placeholder="確認新密碼" style="width:100%"></div>';
+  html += '<button class="btn btn-primary" onclick="doChangePassword()" style="width:100%">確認修改</button>';
+  html += '</div>';
+  html += '<div style="text-align:center;margin-top:12px"><button class="btn btn-outline" onclick="showPlanSelector()">⬅ 返回</button></div>';
+  list.innerHTML = html;
+}
+
+async function doChangePassword(){
+  const oldPwd = document.getElementById('oldPwd').value;
+  const newPwd = document.getElementById('newPwd').value;
+  const newPwd2 = document.getElementById('newPwd2').value;
+  if(!oldPwd || !newPwd) return alert('請填寫所有欄位');
+  if(newPwd !== newPwd2) return alert('兩次密碼不一致');
+  if(newPwd.length < 4) return alert('密碼至少4個字元');
+  try {
+    await api('/api/change-password', 'POST', {old_password: oldPwd, new_password: newPwd});
+    alert('密碼已更新，請重新登入');
+    doLogout();
+  } catch(e) { alert('修改失敗：'+e.message); }
 }
 
 // ===== LOAD FROM API =====
