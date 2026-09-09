@@ -829,7 +829,7 @@ function calcPersonSpend(){
   allItems.forEach(item=>{
     const tw=itemTw(item);
     const split=item.splitWith||item.split_with||[];
-    if(split.length){ const s=tw/split.length; split.forEach(p=>{ if(share[p]!==undefined) share[p]+=s })});
+    if(split.length){ const s=tw/split.length; split.forEach(p=>{ if(share[p]!==undefined) share[p]+=s })};
   });
   D.shopping.filter(s=>s.bought&&(s.splitWith||s.split_with||[]).length).forEach(item=>{
     const tw=item.tw||0;
