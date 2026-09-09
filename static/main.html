@@ -579,6 +579,7 @@ function importData(e){
       if(D.rateJPY) RATES.JPY=1/D.rateJPY;
       if(D.rateUSD) RATES.USD=1/D.rateUSD;
       renderAll();
+      debouncedSave();
       alert('匯入成功！');
     }catch(err){
       alert('匯入失敗：檔案格式不正確');
