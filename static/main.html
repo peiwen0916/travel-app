@@ -561,6 +561,7 @@ async function showAdminPanel(){
       const dateStr = d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
       html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
       html += '<div><b>'+escHtml(u.username)+'</b>'+(u.is_admin?' 👑':'')+'<br><span style="font-size:11px;color:var(--sub)">註冊於 '+dateStr+'・'+u.plan_count+' 個行程</span></div>';
+      if(!u.is_admin) html += '<button class="btn btn-sm btn-danger" onclick="deleteUser('+u.id+',\''+escHtml(u.username)+'\')">刪除</button>';
       html += '</div>';
     });
     html += '</div>';
@@ -569,6 +570,13 @@ async function showAdminPanel(){
   } catch(e) {
     list.innerHTML = '<div class="card" style="color:red">載入失敗：'+e.message+'</div><div style="text-align:center;margin-top:12px"><button class="btn btn-outline" onclick="showPlanSelector()">⬅ 返回</button></div>';
   }
+}
+async function deleteUser(userId, username){
+  if(!confirm('確定要刪除 '+username+' 嗎？此操作無法復原！')) return;
+  try {
+    await api('/api/admin/users/'+userId, 'DELETE');
+    showAdminPanel();
+  } catch(e) { alert('刪除失敗：'+e.message); }
 }
 async function joinPlan(){
   const code = document.getElementById('joinCodeInput').value.trim();
