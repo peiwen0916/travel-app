@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>旅行規劃</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
 :root{--bg:#fafafa;--card:#fff;--text:#1a1a1a;--sub:#888;--accent:#2563eb;--border:#e5e5e5;--green:#16a34a;--red:#dc2626;--orange:#ea580c;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,0.06)}
@@ -169,7 +171,8 @@ body.locked .item .split-info{width:100%}
     <button class="lock-btn" onclick="localStorage.removeItem('planId');showPlanSelector()" title="回首頁">⬅</button>
     <input class="title" id="mainTitle" value="旅行規劃" onchange="D.title=this.value;debouncedSave()" style="flex:1">
     <div style="display:flex;gap:4px">
-      <button class="lock-btn" onclick="exportData()" title="匯出">📤</button>
+      <button class="lock-btn" onclick="exportData()" title="匯出JSON">📤</button>
+      <button class="lock-btn" onclick="exportPDF()" title="匯出PDF">📄</button>
       <button class="lock-btn" onclick="document.getElementById('importFile').click()" title="匯入">📥</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       <button class="lock-btn" onclick="showShareModal()" title="共享">👥</button>
@@ -418,7 +421,7 @@ async function saveToApi(){
   await api('/api/plans/'+planId+'/flights', 'PUT', D.flights.map((f,i)=>({fr:f.from||f.fr||'',to:f.to||'',date:f.date||'',time:f.time||'',tag:f.tag||'',price:f.price||0,order:i})));
   await api('/api/plans/'+planId+'/hotels', 'PUT', D.hotels.map((h,i)=>({name:h.name||'',checkin:h.checkin||'',checkout:h.checkout||'',nights:h.nights||0,price:h.price||0,order:i})));
   await api('/api/plans/'+planId+'/days', 'PUT', D.days.map((d,i)=>({date:d.date||'',label:d.label||'',order:i,items:(d.items||[]).map((it,j)=>({time:it.time||'',title:it.title||'',note:it.note||'',metro:it.metro||'',map_query:it.naver||it.map_query||'',order:j}))})));
-  await api('/api/plans/'+planId+'/shopping', 'PUT', D.shopping.map((s,i)=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,split_with:s.splitWith||s.split_with||[],order:i,cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||''})));
+  await api('/api/plans/'+planId+'/shopping', 'PUT', D.shopping.map((s,i)=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,split_with:s.splitWith||s.split_with||[],order:i,cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||'',date:s.date||''})));
   await api('/api/plans/'+planId+'/fixed', 'PUT', D.fixed.map((f,i)=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paid_by:f.paidBy||f.paid_by||'',split_with:f.splitWith||f.split_with||[],order:i})));
   await api('/api/plans/'+planId+'/other', 'PUT', D.other.map((o,i)=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paid_by:o.paidBy||o.paid_by||'',split_with:o.splitWith||o.split_with||[],order:i})));
 }
@@ -534,7 +537,7 @@ async function loadPlan(){
   D.flights = (data.flights||[]).map(f=>({from:f.fr||'',to:f.to||'',date:f.date||'',time:f.time||'',tag:f.tag||'',price:f.price||0}));
   D.hotels = (data.hotels||[]).map(h=>({name:h.name||'',checkin:h.checkin||'',checkout:h.checkout||'',nights:h.nights||0,price:h.price||0}));
   D.days = (data.days||[]).map(d=>({date:d.date||'',label:d.label||'',items:(d.items||[]).map(it=>({time:it.time||'',title:it.title||'',note:it.note||'',metro:it.metro||'',naver:it.map_query||''}))}));
-  D.shopping = (data.shopping||[]).map(s=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,splitWith:s.split_with||[],cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||''}));
+  D.shopping = (data.shopping||[]).map(s=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,splitWith:s.split_with||[],cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||'',date:s.date||''}));
   D.fixed = (data.fixed||[]).map(f=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paidBy:f.paid_by||'',splitWith:f.split_with||[]}));
   D.other = (data.other||[]).map(o=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paidBy:o.paid_by||'',splitWith:o.split_with||[]}));
 
@@ -680,6 +683,61 @@ function exportData(){
   a.click();
   URL.revokeObjectURL(a.href);
 }
+async function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','mm','a4');
+  const w=210;let y=15;
+  doc.setFont('helvetica','bold');doc.setFontSize(18);
+  doc.text(D.title||'Travel Plan',w/2,y,{align:'center'});y+=10;
+  doc.setFontSize(10);doc.setFont('helvetica','normal');
+  doc.text('Exported: '+new Date().toLocaleDateString('zh-TW'),w/2,y,{align:'center'});y+=10;
+  if(D.flights&&D.flights.length){
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Flights',15,y);y+=7;
+    doc.setFont('helvetica','normal');doc.setFontSize(10);
+    D.flights.forEach(f=>{
+      doc.text((f.from||'?')+' -> '+(f.to||'?')+'  '+(f.date||'')+' '+(f.time||'')+(f.price?'  NT$'+f.price:''),15,y);y+=6;
+    });y+=4;
+  }
+  if(D.hotels&&D.hotels.length){
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Hotels',15,y);y+=7;
+    doc.setFont('helvetica','normal');doc.setFontSize(10);
+    D.hotels.forEach(h=>{
+      doc.text((h.name||'?')+'  '+(h.checkin||'')+'~'+(h.checkout||'')+(h.price?'  NT$'+h.price:''),15,y);y+=6;
+    });y+=4;
+  }
+  if(D.days&&D.days.length){
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Itinerary',15,y);y+=7;
+    D.days.forEach(d=>{
+      if(y>270){doc.addPage();y=15}
+      doc.setFont('helvetica','bold');doc.setFontSize(11);
+      doc.text((d.date||'')+' '+(d.label||''),15,y);y+=6;
+      doc.setFont('helvetica','normal');doc.setFontSize(9);
+      (d.items||[]).forEach(it=>{
+        if(y>275){doc.addPage();y=15}
+        doc.text('  '+(it.time||'')+' '+(it.title||'')+(it.note?' ('+it.note+')':''),15,y);y+=5;
+      });y+=3;
+    });y+=4;
+  }
+  if(D.shopping&&D.shopping.length){
+    if(y>240){doc.addPage();y=15}
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Shopping',15,y);y+=7;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);
+    D.shopping.forEach(s=>{
+      if(y>275){doc.addPage();y=15}
+      doc.text((s.bought?'[v] ':'[ ] ')+(s.name||'?')+(s.store?' @'+s.store:'')+(s.date?' '+s.date:'')+'  NT$'+(s.tw||0),15,y);y+=5;
+    });y+=4;
+  }
+  if(D.fixed&&D.fixed.length){
+    if(y>240){doc.addPage();y=15}
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('Fixed Expenses',15,y);y+=7;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);
+    D.fixed.forEach(f=>{
+      if(y>275){doc.addPage();y=15}
+      doc.text((f.name||'?')+'  '+(f.cur||'TWD')+' '+(f.amt||0)+(f.paid_by?'  paid by '+f.paid_by:''),15,y);y+=5;
+    });
+  }
+  doc.save((D.title||'travel')+'.pdf');
+}
 function importData(e){
   const file=e.target.files[0];
   if(!file) return;
@@ -760,9 +818,9 @@ function renderHotels(){
       <button class="item-del" onclick="D.hotels.splice(${i},1);renderHotels();debouncedSave()">×</button>
       <input value="${escHtml(h.name||'')}" onchange="D.hotels[${i}].name=this.value;debouncedSave()" placeholder="飯店名稱">
       <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
-        <input value="${escHtml(h.checkin||'')}" onchange="D.hotels[${i}].checkin=this.value;debouncedSave()" placeholder="入住" style="width:70px">
+        <input type="date" value="${h.checkin||''}" onchange="D.hotels[${i}].checkin=this.value;debouncedSave()" placeholder="入住" style="width:130px;font-size:12px">
         <span style="color:var(--sub);font-size:11px;letter-spacing:1px">~</span>
-        <input value="${escHtml(h.checkout||'')}" onchange="D.hotels[${i}].checkout=this.value;debouncedSave()" placeholder="退房" style="width:70px">
+        <input type="date" value="${h.checkout||''}" onchange="D.hotels[${i}].checkout=this.value;debouncedSave()" placeholder="退房" style="width:130px;font-size:12px">
         <span style="color:var(--orange);font-size:13px">💰</span>
         <input type="number" value="${h.price||0}" onchange="D.hotels[${i}].price=+this.value;renderBudget();debouncedSave()" placeholder="金額" style="width:90px">
       </div>
@@ -778,7 +836,7 @@ function renderDays(){
     <div class="card" style="margin-top:12px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <button class="item-del" style="position:static" onclick="D.days.splice(${di},1);renderDays();debouncedSave()">×</button>
-        <input value="${escHtml(d.date||'')}" onchange="D.days[${di}].date=this.value;debouncedSave()" style="width:80px;font-weight:700;border:none;background:none;padding:0">
+        <input type="date" value="${d.date||''}" onchange="D.days[${di}].date=this.value;debouncedSave()" style="width:130px;font-size:12px;font-weight:700;border:none;background:none;padding:0">
         <input value="${escHtml(d.label||'')}" onchange="D.days[${di}].label=this.value;debouncedSave()" style="flex:1;font-weight:700;border:none;background:none;padding:0" placeholder="標題">
       </div>
       <div id="day-items-${di}"></div>
@@ -820,9 +878,8 @@ function renderShopping(){
 
   c.innerHTML=D.shopping.map((s,i)=>{
     const cur=s.cur||'KRW';
-    const sym={KRW:'₩',JPY:'¥',USD:'$',TWD:'NT$'}[cur]||'₩';
     const localPrice=cur==='KRW'?s.kr:cur==='JPY'?(s.jpy||0):cur==='USD'?(s.usd||0):s.tw;
-    const photoHtml=s.photo?'<div style="margin-top:6px"><img src="'+s.photo+'" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px"></div>':'';
+    const photoHtml=s.photo?'<div style="margin-top:6px"><img src="'+s.photo+'" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px"></div>':'';
     return `
     <div class="item" style="opacity:${s.bought?0.6:1}">
       <div class="item-head">
@@ -832,6 +889,7 @@ function renderShopping(){
       </div>
       <div class="item-body">
         <input value="${escHtml(s.store||'')}" onchange="D.shopping[${i}].store=this.value;debouncedSave()" placeholder="店家" style="font-size:12px">
+        <input type="date" value="${s.date||''}" onchange="D.shopping[${i}].date=this.value;debouncedSave()" style="font-size:12px;width:130px">
         <div style="display:flex;gap:4px;align-items:center;flex:1;min-width:120px">
           <select onchange="D.shopping[${i}].cur=this.value;renderShopping();debouncedSave()" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;width:auto">
             <option value="KRW"${cur==='KRW'?' selected':''}>₩ 韓元</option>
