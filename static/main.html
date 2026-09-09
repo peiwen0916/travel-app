@@ -386,20 +386,21 @@ const D = {
 
 // ===== UNDO =====
 const undoStack=[];
-let undoTimer=null;
+let lastUndoSnapshot='';
 function snapshotForUndo(){
-  clearTimeout(undoTimer);
-  undoTimer=setTimeout(()=>{
-    undoStack.push(JSON.stringify(D));
-    if(undoStack.length>30)undoStack.shift();
-  },1000);
+  const snap=JSON.stringify(D);
+  if(snap===lastUndoSnapshot)return;
+  lastUndoSnapshot=snap;
+  undoStack.push(snap);
+  if(undoStack.length>30)undoStack.shift();
 }
 function undoAction(){
   if(!undoStack.length)return alert('沒有可返回的操作');
   const prev=JSON.parse(undoStack.pop());
   Object.assign(D,prev);
+  lastUndoSnapshot=JSON.stringify(D);
   renderAll();
-  debouncedSave();
+  debouncedSaveNoSnap();
 }
 
 // ===== AUTH & API =====
@@ -426,10 +427,17 @@ function debouncedSave(){
   if(saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{ saveToApi(); }, 500);
 }
+function debouncedSaveNoSnap(){
+  if(CURRENT_PERMISSION === 'readonly') return;
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ saveToApi(); }, 500);
+}
 
 async function saveToApi(){
   const planId = getPlanId();
   if(!planId) return;
+  const btn=document.getElementById('saveBtn');
+  if(btn){btn.textContent='⏳';btn.style.color='#999';}
 
   const planData = {
     title: D.title,
@@ -448,6 +456,7 @@ async function saveToApi(){
   await api('/api/plans/'+planId+'/shopping', 'PUT', D.shopping.map((s,i)=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,split_with:s.splitWith||s.split_with||[],order:i,cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||'',date:s.date||''})));
   await api('/api/plans/'+planId+'/fixed', 'PUT', D.fixed.map((f,i)=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paid_by:f.paidBy||f.paid_by||'',split_with:f.splitWith||f.split_with||[],order:i})));
   await api('/api/plans/'+planId+'/other', 'PUT', D.other.map((o,i)=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paid_by:o.paidBy||o.paid_by||'',split_with:o.splitWith||o.split_with||[],order:i})));
+  if(btn){btn.textContent='✅';btn.style.color='var(--green)';setTimeout(()=>{btn.textContent='💾';},1500);}
 }
 
 // ===== PLAN SELECTOR =====
