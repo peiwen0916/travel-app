@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from typing import List, Optional
 from models import (
-    init_db, get_db, User, TravelPlan, Flight, Hotel, Day, DayItem,
+    init_db, get_db, SessionLocal, User, TravelPlan, Flight, Hotel, Day, DayItem,
     ShoppingItem, FixedExpense, OtherExpense
 )
 from auth import (
