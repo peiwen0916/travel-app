@@ -199,14 +199,17 @@ def admin_delete_user(user_id: int, user: User = Depends(get_current_user), db: 
 
 
 # ===== Plan Routes =====
-def get_plan_with_access(plan_id: int, user: User, db: Session) -> TravelPlan:
+def get_plan_with_access(plan_id: int, user: User, db: Session):
     plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="找不到行程")
+    if plan.user_id == user.id:
+        return plan, "owner"
     shared = plan.shared_with or []
-    if plan.user_id != user.id and user.id not in shared:
-        raise HTTPException(status_code=403, detail="無權限存取此行程")
-    return plan
+    for s in shared:
+        if s.get("user_id") == user.id:
+            return plan, s.get("permission", "readonly")
+    raise HTTPException(status_code=403, detail="無權限存取此行程")
 
 
 @app.get("/api/plans")
@@ -238,13 +241,17 @@ def create_plan(req: PlanCreate, user: User = Depends(get_current_user), db: Ses
 
 @app.get("/api/plans/{plan_id}")
 def get_plan(plan_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    plan = get_plan_with_access(plan_id, user, db)
-    return serialize_plan(plan)
+    plan, permission = get_plan_with_access(plan_id, user, db)
+    result = serialize_plan(plan)
+    result["permission"] = permission
+    return result
 
 
 @app.put("/api/plans/{plan_id}")
 def update_plan(plan_id: int, req: PlanUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    plan = get_plan_with_access(plan_id, user, db)
+    plan, permission = get_plan_with_access(plan_id, user, db)
+    if permission == "readonly":
+        raise HTTPException(status_code=403, detail="唯讀權限，無法修改")
     for k, v in req.dict(exclude_unset=True).items():
         setattr(plan, k, v)
     db.commit()
@@ -263,6 +270,10 @@ def delete_plan(plan_id: int, user: User = Depends(get_current_user), db: Sessio
 
 class ShareRequest(BaseModel):
     username: str
+    permission: str = "edit"  # "edit" or "readonly"
+
+class ShareUpdate(BaseModel):
+    permission: str
 
 
 @app.get("/api/plans/{plan_id}/share-code")
@@ -274,16 +285,16 @@ def get_share_code(plan_id: int, user: User = Depends(get_current_user), db: Ses
         plan.share_code = generate_share_code()
         db.commit()
     shared_users = []
-    for uid in (plan.shared_with or []):
-        u = db.query(User).filter(User.id == uid).first()
+    for s in (plan.shared_with or []):
+        u = db.query(User).filter(User.id == s.get("user_id")).first()
         if u:
-            shared_users.append({"id": u.id, "username": u.username})
+            shared_users.append({"id": u.id, "username": u.username, "permission": s.get("permission", "readonly")})
     return {"share_code": plan.share_code, "shared_with": shared_users}
 
 
 @app.post("/api/plans/{plan_id}/share")
 def share_plan(plan_id: int, req: ShareRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user.id).first()
+    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, Plan.user_id == user.id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="找不到行程")
     target = db.query(User).filter(User.username == req.username).first()
@@ -292,12 +303,31 @@ def share_plan(plan_id: int, req: ShareRequest, user: User = Depends(get_current
     if target.id == user.id:
         raise HTTPException(status_code=400, detail="不能共享給自己")
     shared = plan.shared_with or []
-    if target.id in shared:
-        raise HTTPException(status_code=400, detail="已經共享過了")
-    shared.append(target.id)
+    for s in shared:
+        if s.get("user_id") == target.id:
+            raise HTTPException(status_code=400, detail="已經共享過了")
+    shared.append({"user_id": target.id, "permission": req.permission})
     plan.shared_with = shared
     db.commit()
     return {"ok": True, "shared_with": req.username}
+
+
+@app.put("/api/plans/{plan_id}/share/{username}")
+def update_share_permission(plan_id: int, username: str, req: ShareUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user.id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="找不到行程")
+    target = db.query(User).filter(User.username == username).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="找不到使用者")
+    shared = plan.shared_with or []
+    for s in shared:
+        if s.get("user_id") == target.id:
+            s["permission"] = req.permission
+            plan.shared_with = shared
+            db.commit()
+            return {"ok": True}
+    raise HTTPException(status_code=404, detail="未共享此用戶")
 
 
 @app.delete("/api/plans/{plan_id}/share/{username}")
@@ -309,10 +339,11 @@ def unshare_plan(plan_id: int, username: str, user: User = Depends(get_current_u
     if not target:
         raise HTTPException(status_code=404, detail="找不到使用者")
     shared = plan.shared_with or []
-    if target.id in shared:
-        shared.remove(target.id)
-        plan.shared_with = shared
-        db.commit()
+    new_shared = [s for s in shared if s.get("user_id") != target.id]
+    if len(new_shared) == len(shared):
+        raise HTTPException(status_code=404, detail="未共享此用戶")
+    plan.shared_with = new_shared
+    db.commit()
     return {"ok": True}
 
 
