@@ -516,9 +516,9 @@ async function doChangePassword(){
 let CURRENT_PERMISSION = 'edit';
 async function loadPlan(){
   const planId = getPlanId();
-  if(!planId){ showPlanSelector(); return; }
+  if(!planId) throw new Error('no plan');
   const data = await api('/api/plans/'+planId);
-  if(!data || data.detail){ showPlanSelector(); return; }
+  if(!data || data.detail) throw new Error('not found');
 
   CURRENT_PERMISSION = data.permission || 'edit';
 
@@ -1265,14 +1265,21 @@ function compactItems(){
       return;
     }
     document.getElementById('loadingScreen').style.display='flex';
-    await loadPlan();
-    document.getElementById('loadingScreen').style.display='none';
-    document.getElementById('appContent').style.display='block';
-    renderAll();
-    applyLock();
+    try{
+      await loadPlan();
+      document.getElementById('loadingScreen').style.display='none';
+      document.getElementById('appContent').style.display='block';
+      renderAll();
+      applyLock();
+    }catch(e){
+      document.getElementById('loadingScreen').style.display='none';
+      localStorage.removeItem('planId');
+      await showPlanSelector();
+    }
   }catch(e){
-    document.body.innerHTML='<div style="padding:20px;color:red"><h3>JavaScript 錯誤</h3><pre>'+e.message+'</pre></div>';
     console.error(e);
+    localStorage.clear();
+    window.location.href='/';
   }
 })();
 </script>
