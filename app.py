@@ -29,6 +29,21 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     init_db()
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE"))
+        db.commit()
+    except:
+        db.rollback()
+    try:
+        first_user = db.query(User).order_by(User.id).first()
+        if first_user and not first_user.is_admin:
+            first_user.is_admin = True
+            db.commit()
+    except:
+        db.rollback()
+    db.close()
 
 
 def generate_share_code():
