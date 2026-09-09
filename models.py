@@ -143,6 +143,18 @@ class OtherExpense(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Add missing columns for existing databases
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        for col, typ in [
+            ("shared_with", "JSON"),
+            ("share_code", "VARCHAR(20)")
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE travel_plans ADD COLUMN {col} {typ}"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
 
 
 def get_db():
