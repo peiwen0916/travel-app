@@ -394,14 +394,19 @@ function snapshotForUndo(){
   undoStack.push(snap);
   if(undoStack.length>30)undoStack.shift();
 }
+function snapBefore(){snapshotForUndo();}
 function undoAction(){
   if(!undoStack.length)return alert('沒有可返回的操作');
   const prev=JSON.parse(undoStack.pop());
   Object.assign(D,prev);
   lastUndoSnapshot=JSON.stringify(D);
   renderAll();
-  debouncedSaveNoSnap();
 }
+document.addEventListener('focusin',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT'){
+    snapshotForUndo();
+  }
+});
 
 // ===== AUTH & API =====
 function getToken(){ return localStorage.getItem('token'); }
@@ -421,23 +426,22 @@ async function api(path, method='GET', body=null){
 
 // ===== AUTO-SAVE (debounced) =====
 let saveTimer = null;
+let isDirty=false;
 function debouncedSave(){
   if(CURRENT_PERMISSION === 'readonly') return;
   snapshotForUndo();
-  if(saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=>{ saveToApi(); }, 500);
+  isDirty=true;
+  const btn=document.getElementById('saveBtn');
+  if(btn){btn.textContent='💾 ⚠️';btn.style.color='orange';}
 }
 function debouncedSaveNoSnap(){
-  if(CURRENT_PERMISSION === 'readonly') return;
-  if(saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=>{ saveToApi(); }, 500);
 }
 
 async function saveToApi(){
   const planId = getPlanId();
   if(!planId) return;
   const btn=document.getElementById('saveBtn');
-  if(btn){btn.textContent='⏳';btn.style.color='#999';}
+  if(btn){btn.textContent='💾 ⚠️';btn.style.color='orange';}
 
   const planData = {
     title: D.title,
@@ -456,7 +460,8 @@ async function saveToApi(){
   await api('/api/plans/'+planId+'/shopping', 'PUT', D.shopping.map((s,i)=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,split_with:s.splitWith||s.split_with||[],order:i,cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||'',date:s.date||''})));
   await api('/api/plans/'+planId+'/fixed', 'PUT', D.fixed.map((f,i)=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paid_by:f.paidBy||f.paid_by||'',split_with:f.splitWith||f.split_with||[],order:i})));
   await api('/api/plans/'+planId+'/other', 'PUT', D.other.map((o,i)=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paid_by:o.paidBy||o.paid_by||'',split_with:o.splitWith||o.split_with||[],order:i})));
-  if(btn){btn.textContent='✅';btn.style.color='var(--green)';setTimeout(()=>{btn.textContent='💾';},1500);}
+  isDirty=false;
+  if(btn){btn.textContent='✅ 已儲存';btn.style.color='var(--green)';setTimeout(()=>{btn.textContent='💾';btn.style.color='var(--green)';},2000);}
 }
 
 // ===== PLAN SELECTOR =====
@@ -766,6 +771,7 @@ function addPerson(){
 }
 function removePerson(i){
   const name=D.people[i];
+  snapBefore();
   D.people.splice(i,1);
   D.fixed.forEach(f=>{ if(f.splitWith) f.splitWith=f.splitWith.filter(p=>p!==name) });
   D.other.forEach(o=>{ if(o.splitWith) o.splitWith=o.splitWith.filter(p=>p!==name) });
@@ -777,7 +783,7 @@ function renderFlights(){
   const c=document.getElementById('flights');
   c.innerHTML=D.flights.map((f,i)=>`
     <div class="item" style="margin-bottom:6px">
-      <button class="item-del" onclick="D.flights.splice(${i},1);renderFlights();debouncedSave()">×</button>
+      <button class="item-del" onclick="snapBefore();D.flights.splice(${i},1);renderFlights();debouncedSave()">×</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input value="${escHtml(f.from||'')}" onchange="D.flights[${i}].from=this.value;renderFlights();debouncedSave()" placeholder="出發" style="flex:1;min-width:80px">
         <input value="${escHtml(f.to||'')}" onchange="D.flights[${i}].to=this.value;renderFlights();debouncedSave()" placeholder="抵達" style="flex:1;min-width:80px">
@@ -794,7 +800,7 @@ function renderHotels(){
   const c=document.getElementById('hotels');
   c.innerHTML=D.hotels.map((h,i)=>`
     <div class="item" style="margin-bottom:6px">
-      <button class="item-del" onclick="D.hotels.splice(${i},1);renderHotels();debouncedSave()">×</button>
+      <button class="item-del" onclick="snapBefore();D.hotels.splice(${i},1);renderHotels();debouncedSave()">×</button>
       <input value="${escHtml(h.name||'')}" onchange="D.hotels[${i}].name=this.value;debouncedSave()" placeholder="飯店名稱">
       <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
         <input type="date" value="${h.checkin||''}" onchange="D.hotels[${i}].checkin=this.value;debouncedSave()" placeholder="入住" style="width:130px;font-size:12px">
@@ -816,7 +822,7 @@ function renderDays(){
       <div style="display:flex;align-items:center;gap:4px;margin-bottom:10px">
         <button class="item-del" style="position:static;font-size:10px;${di===0?'visibility:hidden':''}" onclick="moveDay(${di},-1)">▲</button>
         <button class="item-del" style="position:static;font-size:10px;${di===D.days.length-1?'visibility:hidden':''}" onclick="moveDay(${di},1)">▼</button>
-        <button class="item-del" style="position:static" onclick="D.days.splice(${di},1);renderDays();debouncedSave()">×</button>
+        <button class="item-del" style="position:static" onclick="snapBefore();D.days.splice(${di},1);renderDays();debouncedSave()">×</button>
         <input type="date" value="${d.date||''}" onchange="D.days[${di}].date=this.value;debouncedSave()" style="width:130px;font-size:12px;font-weight:700;border:none;background:none;padding:0">
         <input value="${escHtml(d.label||'')}" onchange="D.days[${di}].label=this.value;debouncedSave()" style="flex:1;font-weight:700;border:none;background:none;padding:0" placeholder="標題">
       </div>
@@ -832,7 +838,7 @@ function renderDays(){
         <div style="display:flex;align-items:center;gap:2px">
           <button class="item-del" style="font-size:10px;width:18px;height:18px;${ii===0?'visibility:hidden':''}" onclick="moveItem(${di},${ii},-1)">▲</button>
           <button class="item-del" style="font-size:10px;width:18px;height:18px;${ii===d.items.length-1?'visibility:hidden':''}" onclick="moveItem(${di},${ii},1)">▼</button>
-          <button class="item-del" onclick="D.days[${di}].items.splice(${ii},1);renderDays();debouncedSave()">×</button>
+          <button class="item-del" onclick="snapBefore();D.days[${di}].items.splice(${ii},1);renderDays();debouncedSave()">×</button>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <input value="${escHtml(it.time||'')}" onchange="D.days[${di}].items[${ii}].time=this.value;debouncedSave()" placeholder="時間" style="width:90px;font-weight:600;color:var(--accent)">
@@ -885,7 +891,7 @@ function renderShopping(){
       <div class="item-head">
         <input type="checkbox" class="chk" ${s.bought?'checked':''} onchange="D.shopping[${i}].bought=this.checked;renderShopping();renderBudget();debouncedSave()">
         <input value="${escHtml(s.name||'')}" onchange="D.shopping[${i}].name=this.value;debouncedSave()" placeholder="品名" style="flex:1;font-weight:600;border:none;padding:0;background:none">
-        <button class="item-del" onclick="D.shopping.splice(${i},1);renderShopping();debouncedSave()">×</button>
+        <button class="item-del" onclick="snapBefore();D.shopping.splice(${i},1);renderShopping();debouncedSave()">×</button>
       </div>
       <div class="item-body">
         <div style="display:flex;gap:4px;width:100%">
@@ -968,7 +974,7 @@ function renderExpenseItem(item, type, idx){
 
   return `
     <div class="item" style="margin-bottom:6px">
-      <button class="item-del" onclick="D.${type}.splice(${idx},1);renderBudget();debouncedSave()">×</button>
+      <button class="item-del" onclick="snapBefore();D.${type}.splice(${idx},1);renderBudget();debouncedSave()">×</button>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <input value="${name}" onchange="D.${type}[${idx}].name=this.value;debouncedSave()" placeholder="項目" style="flex:1;min-width:80px;font-weight:600">
         <select onchange="D.${type}[${idx}].cur=this.value;renderBudget();debouncedSave()" style="width:auto;min-width:60px;font-size:12px;padding:6px 8px">
