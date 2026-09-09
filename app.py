@@ -165,6 +165,22 @@ def get_me(user: User = Depends(get_current_user)):
     return {"id": user.id, "username": user.username, "is_admin": user.is_admin}
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@app.post("/api/change-password")
+def change_password(req: ChangePasswordRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not verify_password(req.old_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="舊密碼錯誤")
+    if len(req.new_password) < 4:
+        raise HTTPException(status_code=400, detail="密碼至少4個字元")
+    user.password_hash = get_password_hash(req.new_password)
+    db.commit()
+    return {"ok": True, "message": "密碼已更新"}
+
+
 @app.post("/api/admin/force-admin")
 def force_admin(req: RegisterRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == req.username).first()
