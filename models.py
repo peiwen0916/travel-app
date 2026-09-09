@@ -34,6 +34,8 @@ class TravelPlan(Base):
     people = Column(JSON, default=[])
     tips = Column(JSON, default={})
     map_places = Column(JSON, default=[])
+    shared_with = Column(JSON, default=[])
+    share_code = Column(String(20), unique=True, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
