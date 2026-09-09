@@ -418,7 +418,7 @@ async function saveToApi(){
   await api('/api/plans/'+planId+'/flights', 'PUT', D.flights.map((f,i)=>({fr:f.from||f.fr||'',to:f.to||'',date:f.date||'',time:f.time||'',tag:f.tag||'',price:f.price||0,order:i})));
   await api('/api/plans/'+planId+'/hotels', 'PUT', D.hotels.map((h,i)=>({name:h.name||'',checkin:h.checkin||'',checkout:h.checkout||'',nights:h.nights||0,price:h.price||0,order:i})));
   await api('/api/plans/'+planId+'/days', 'PUT', D.days.map((d,i)=>({date:d.date||'',label:d.label||'',order:i,items:(d.items||[]).map((it,j)=>({time:it.time||'',title:it.title||'',note:it.note||'',metro:it.metro||'',map_query:it.naver||it.map_query||'',order:j}))})));
-  await api('/api/plans/'+planId+'/shopping', 'PUT', D.shopping.map((s,i)=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,split_with:s.splitWith||s.split_with||[],order:i})));
+  await api('/api/plans/'+planId+'/shopping', 'PUT', D.shopping.map((s,i)=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,split_with:s.splitWith||s.split_with||[],order:i,cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||''})));
   await api('/api/plans/'+planId+'/fixed', 'PUT', D.fixed.map((f,i)=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paid_by:f.paidBy||f.paid_by||'',split_with:f.splitWith||f.split_with||[],order:i})));
   await api('/api/plans/'+planId+'/other', 'PUT', D.other.map((o,i)=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paid_by:o.paidBy||o.paid_by||'',split_with:o.splitWith||o.split_with||[],order:i})));
 }
@@ -534,7 +534,7 @@ async function loadPlan(){
   D.flights = (data.flights||[]).map(f=>({from:f.fr||'',to:f.to||'',date:f.date||'',time:f.time||'',tag:f.tag||'',price:f.price||0}));
   D.hotels = (data.hotels||[]).map(h=>({name:h.name||'',checkin:h.checkin||'',checkout:h.checkout||'',nights:h.nights||0,price:h.price||0}));
   D.days = (data.days||[]).map(d=>({date:d.date||'',label:d.label||'',items:(d.items||[]).map(it=>({time:it.time||'',title:it.title||'',note:it.note||'',metro:it.metro||'',naver:it.map_query||''}))}));
-  D.shopping = (data.shopping||[]).map(s=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,splitWith:s.split_with||[]}));
+  D.shopping = (data.shopping||[]).map(s=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,splitWith:s.split_with||[],cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||''}));
   D.fixed = (data.fixed||[]).map(f=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paidBy:f.paid_by||'',splitWith:f.split_with||[]}));
   D.other = (data.other||[]).map(o=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paidBy:o.paid_by||'',splitWith:o.split_with||[]}));
 
@@ -744,7 +744,7 @@ function renderFlights(){
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input value="${escHtml(f.from||'')}" onchange="D.flights[${i}].from=this.value;renderFlights();debouncedSave()" placeholder="出發" style="flex:1;min-width:80px">
         <input value="${escHtml(f.to||'')}" onchange="D.flights[${i}].to=this.value;renderFlights();debouncedSave()" placeholder="抵達" style="flex:1;min-width:80px">
-        <input value="${escHtml(f.date||'')}" onchange="D.flights[${i}].date=this.value;renderFlights();debouncedSave()" placeholder="日期" style="width:70px">
+        <input type="date" value="${f.date||''}" onchange="D.flights[${i}].date=this.value;renderFlights();debouncedSave()" placeholder="日期" style="width:130px;font-size:12px">
         <input value="${escHtml(f.time||'')}" onchange="D.flights[${i}].time=this.value;renderFlights();debouncedSave()" placeholder="時間" style="width:100px">
       </div>
     </div>
@@ -818,7 +818,12 @@ function renderShopping(){
   document.getElementById('shopTotal').textContent='NT$'+totalTWD.toLocaleString();
   document.getElementById('shopTotalKRW').textContent='₩'+totalKRW.toLocaleString();
 
-  c.innerHTML=D.shopping.map((s,i)=>`
+  c.innerHTML=D.shopping.map((s,i)=>{
+    const cur=s.cur||'KRW';
+    const sym={KRW:'₩',JPY:'¥',USD:'$',TWD:'NT$'}[cur]||'₩';
+    const localPrice=cur==='KRW'?s.kr:cur==='JPY'?(s.jpy||0):cur==='USD'?(s.usd||0):s.tw;
+    const photoHtml=s.photo?'<div style="margin-top:6px"><img src="'+s.photo+'" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px"></div>':'';
+    return `
     <div class="item" style="opacity:${s.bought?0.6:1}">
       <div class="item-head">
         <input type="checkbox" class="chk" ${s.bought?'checked':''} onchange="D.shopping[${i}].bought=this.checked;renderShopping();renderBudget();debouncedSave()">
@@ -827,19 +832,51 @@ function renderShopping(){
       </div>
       <div class="item-body">
         <input value="${escHtml(s.store||'')}" onchange="D.shopping[${i}].store=this.value;debouncedSave()" placeholder="店家" style="font-size:12px">
-        <div class="price-row" style="flex:1;min-width:120px">
-          <span class="price-unit">₩</span>
-          <input type="number" value="${s.kr||0}" onchange="D.shopping[${i}].kr=+this.value;D.shopping[${i}].tw=Math.round(+this.value*${RATE});renderShopping();debouncedSave()" placeholder="韓元" style="font-size:12px">
+        <div style="display:flex;gap:4px;align-items:center;flex:1;min-width:120px">
+          <select onchange="D.shopping[${i}].cur=this.value;renderShopping();debouncedSave()" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;width:auto">
+            <option value="KRW"${cur==='KRW'?' selected':''}>₩ 韓元</option>
+            <option value="JPY"${cur==='JPY'?' selected':''}>¥ 日圓</option>
+            <option value="USD"${cur==='USD'?' selected':''}>$ 美元</option>
+            <option value="TWD"${cur==='TWD'?' selected':''}>NT$ 台幣</option>
+          </select>
+          <input type="number" value="${localPrice||0}" onchange="updateShopPrice(${i},this.value);renderShopping();debouncedSave()" placeholder="金額" style="font-size:12px;flex:1">
         </div>
         <div class="price-row" style="flex:1;min-width:100px">
           <span class="price-unit">NT$</span>
-          <input type="number" value="${s.tw||0}" onchange="D.shopping[${i}].tw=+this.value;D.shopping[${i}].kr=Math.round(+this.value/${RATE});renderShopping();debouncedSave()" placeholder="台幣" style="font-size:12px">
+          <input type="number" value="${s.tw||0}" onchange="D.shopping[${i}].tw=+this.value;updateShopKRFromTW(${i});renderShopping();debouncedSave()" placeholder="台幣" style="font-size:12px">
+        </div>
+        <div style="margin-top:4px">
+          <label style="font-size:11px;color:var(--sub);cursor:pointer">📷 相片<input type="file" accept="image/*" style="display:none" onchange="shopAddPhoto(${i},this)"></label>
         </div>
       </div>
-    </div>
-  `).join('');
+      ${photoHtml}
+    </div>`;
+  }).join('');
 }
-function addShopItem(){ D.shopping.push({name:'',store:'',kr:0,tw:0,bought:false}); renderShopping(); debouncedSave(); }
+function updateShopPrice(i,v){
+  const s=D.shopping[i], cur=s.cur||'KRW';
+  const val=+v||0;
+  if(cur==='KRW'){s.kr=val;s.tw=Math.round(val*RATE)}
+  else if(cur==='JPY'){s.jpy=val;s.tw=Math.round(val*RATES.JPY)}
+  else if(cur==='USD'){s.usd=val;s.tw=Math.round(val*RATES.USD)}
+  else{s.tw=val;s.kr=Math.round(val/RATE)}
+}
+function updateShopKRFromTW(i){
+  const s=D.shopping[i];
+  s.kr=Math.round(s.tw/RATE);
+  s.jpy=Math.round(s.tw/RATES.JPY);
+  s.usd=Math.round(s.tw/RATES.USD*100)/100;
+}
+function shopAddPhoto(i,input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    D.shopping[i].photo=ev.target.result;
+    renderShopping();debouncedSave();
+  };
+  reader.readAsDataURL(file);
+}
+function addShopItem(){ D.shopping.push({name:'',store:'',kr:0,tw:0,bought:false,cur:'KRW'}); renderShopping(); debouncedSave(); }
 
 // ===== EXPENSE ITEM RENDERER =====
 function renderExpenseItem(item, type, idx){
