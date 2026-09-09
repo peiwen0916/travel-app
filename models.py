@@ -113,6 +113,10 @@ class ShoppingItem(Base):
     bought = Column(Boolean, default=False)
     split_with = Column(JSON, default=[])
     order = Column(Integer, default=0)
+    cur = Column(String(10), default="KRW")
+    jpy = Column(Integer, default=0)
+    usd = Column(Float, default=0)
+    photo = Column(Text, default="")
     plan = relationship("TravelPlan", back_populates="shopping")
 
 
@@ -149,12 +153,16 @@ def init_db():
     # Add missing columns for existing databases
     from sqlalchemy import text
     with engine.connect() as conn:
-        for col, typ in [
-            ("shared_with", "JSON"),
-            ("share_code", "VARCHAR(20)")
+        for table, col, typ in [
+            ("travel_plans", "shared_with", "JSON"),
+            ("travel_plans", "share_code", "VARCHAR(20)"),
+            ("shopping", "cur", "VARCHAR(10) DEFAULT 'KRW'"),
+            ("shopping", "jpy", "INTEGER DEFAULT 0"),
+            ("shopping", "usd", "FLOAT DEFAULT 0"),
+            ("shopping", "photo", "TEXT DEFAULT ''"),
         ]:
             try:
-                conn.execute(text(f"ALTER TABLE travel_plans ADD COLUMN {col} {typ}"))
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {typ}"))
                 conn.commit()
             except Exception:
                 pass  # Column already exists
