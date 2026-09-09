@@ -394,6 +394,7 @@ async function api(path, method='GET', body=null){
 // ===== AUTO-SAVE (debounced) =====
 let saveTimer = null;
 function debouncedSave(){
+  if(CURRENT_PERMISSION === 'readonly') return;
   if(saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{ saveToApi(); }, 500);
 }
@@ -485,11 +486,14 @@ function doLogout(){
 }
 
 // ===== LOAD FROM API =====
+let CURRENT_PERMISSION = 'edit';
 async function loadPlan(){
   const planId = getPlanId();
   if(!planId){ showPlanSelector(); return; }
   const data = await api('/api/plans/'+planId);
   if(!data || data.detail){ showPlanSelector(); return; }
+
+  CURRENT_PERMISSION = data.permission || 'edit';
 
   D.title = data.title || '旅行規劃';
   D.locked = data.locked || false;
@@ -510,6 +514,28 @@ async function loadPlan(){
   if(D.rateKRW) RATES.KRW = 1/D.rateKRW;
   if(D.rateJPY) RATES.JPY = 1/D.rateJPY;
   if(D.rateUSD) RATES.USD = 1/D.rateUSD;
+
+  applyPermission();
+}
+
+function applyPermission(){
+  const ro = CURRENT_PERMISSION === 'readonly';
+  document.querySelectorAll('.btn-add, .lock-btn').forEach(b => {
+    if(ro && !b.title?.includes('匯出') && !b.title?.includes('匯入') && !b.title?.includes('共享') && !b.title?.includes('回首頁')) {
+      b.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if(ro && el.id !== 'joinCodeInput') el.readOnly = true;
+  });
+  if(ro){
+    const banner = document.createElement('div');
+    banner.id = 'readonlyBanner';
+    banner.style.cssText = 'background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:8px 12px;border-radius:8px;font-size:12px;text-align:center;margin-bottom:8px';
+    banner.textContent = '👁️ 唯讀模式 — 你只有檢視權限，如需編輯請聯繫行程擁有者';
+    const tabs = document.getElementById('tabs');
+    if(tabs && !document.getElementById('readonlyBanner')) tabs.parentNode.insertBefore(banner, tabs);
+  }
 }
 
 // ===== SHARING =====
@@ -521,17 +547,27 @@ async function showShareModal(){
   try {
     const data = await api('/api/plans/'+planId+'/share-code');
     let html = '<div style="margin-bottom:12px"><b>分享碼：</b><span style="background:var(--bg);padding:4px 12px;border-radius:6px;font-size:18px;font-weight:700;letter-spacing:2px;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent);this.style.background=\'#dcfce7\';setTimeout(()=>this.style.background=\'var(--bg)\',1000)" title="點擊複製">'+data.share_code+'</span></div>';
-    html += '<div style="font-size:12px;color:var(--sub);margin-bottom:12px">把這個分享碼傳給朋友，朋友在行程頁面輸入即可加入共同編輯</div>';
+    html += '<div style="font-size:12px;color:var(--sub);margin-bottom:12px">把這個分享碼傳給朋友，朋友在行程頁面輸入即可加入</div>';
     html += '<div style="margin-bottom:12px"><b>已共享：</b></div>';
     if(data.shared_with.length === 0){
       html += '<div style="color:var(--sub);font-size:12px">還沒有共享給任何人</div>';
     } else {
       data.shared_with.forEach(u => {
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span>'+u.username+'</span><button class="btn btn-sm btn-danger" onclick="removeShare(\''+u.username+'\')">移除</button></div>';
+        const permLabel = u.permission==='edit'?'可編輯':'唯讀';
+        const permColor = u.permission==='edit'?'#16a34a':'#ea580c';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">';
+        html += '<span>'+u.username+'</span>';
+        html += '<div style="display:flex;gap:4px;align-items:center">';
+        html += '<select id="perm_'+u.username+'" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px" onchange="updatePermission(\''+u.username+'\',this.value)">';
+        html += '<option value="edit"'+(u.permission==='edit'?' selected':'')+'>可編輯</option>';
+        html += '<option value="readonly"'+(u.permission==='readonly'?' selected':'')+'>唯讀</option>';
+        html += '</select>';
+        html += '<button class="btn btn-sm btn-danger" onclick="removeShare(\''+u.username+'\')">移除</button>';
+        html += '</div></div>';
       });
     }
     html += '<div style="margin-top:12px"><b>新增共享：</b></div>';
-    html += '<div style="display:flex;gap:6px;margin-top:4px"><input id="shareUsername" placeholder="輸入對方帳號" style="flex:1;font-size:13px"><button class="btn btn-sm btn-primary" onclick="addShare()">邀請</button></div>';
+    html += '<div style="display:flex;gap:6px;margin-top:4px"><input id="shareUsername" placeholder="輸入對方帳號" style="flex:1;font-size:13px"><select id="sharePerm" style="font-size:12px;border:1px solid var(--border);border-radius:4px"><option value="edit">可編輯</option><option value="readonly">唯讀</option></select><button class="btn btn-sm btn-primary" onclick="addShare()">邀請</button></div>';
     content.innerHTML = html;
   } catch(e) {
     content.innerHTML = '<div style="color:red">載入失敗：'+e.message+'</div>';
@@ -539,13 +575,20 @@ async function showShareModal(){
 }
 async function addShare(){
   const username = document.getElementById('shareUsername').value.trim();
+  const permission = document.getElementById('sharePerm').value;
   if(!username) return;
   const planId = getPlanId();
   try {
-    await api('/api/plans/'+planId+'/share', 'POST', {username: username});
+    await api('/api/plans/'+planId+'/share', 'POST', {username: username, permission: permission});
     document.getElementById('shareUsername').value = '';
     showShareModal();
   } catch(e) { alert('共享失敗：'+e.message); }
+}
+async function updatePermission(username, permission){
+  const planId = getPlanId();
+  try {
+    await api('/api/plans/'+planId+'/share/'+username, 'PUT', {permission: permission});
+  } catch(e) { alert('更新失敗：'+e.message); }
 }
 async function removeShare(username){
   if(!confirm('確定要移除 '+username+' 的存取權限嗎？')) return;
