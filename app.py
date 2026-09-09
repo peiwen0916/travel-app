@@ -310,7 +310,7 @@ def get_share_code(plan_id: int, user: User = Depends(get_current_user), db: Ses
 
 @app.post("/api/plans/{plan_id}/share")
 def share_plan(plan_id: int, req: ShareRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, Plan.user_id == user.id).first()
+    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user.id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="找不到行程")
     target = db.query(User).filter(User.username == req.username).first()
