@@ -157,6 +157,7 @@ body.locked .item .split-info{width:100%}
   <div class="plan-actions" style="justify-content:center;margin-top:16px">
     <button class="btn btn-primary" onclick="createPlan()">＋ 建立新行程</button>
     <button class="btn btn-outline" onclick="doLogout()">登出</button>
+    <button class="btn btn-outline" id="adminBtn" style="display:none" onclick="showAdminPanel()">👑 管理</button>
   </div>
 </div>
 
@@ -205,6 +206,16 @@ body.locked .item .split-info{width:100%}
         載入中...
       </div>
       <button onclick="document.getElementById('shareModal').style.display='none'" style="margin-top:16px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer">關閉</button>
+    </div>
+  </div>
+
+  <div id="adminModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--card);border-radius:12px;padding:24px;max-width:500px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px">👑 管理後台</div>
+      <div id="adminContent" style="font-size:13px;color:var(--text);line-height:1.8">
+        載入中...
+      </div>
+      <button onclick="document.getElementById('adminModal').style.display='none'" style="margin-top:16px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer">關閉</button>
     </div>
   </div>
 
@@ -414,6 +425,9 @@ async function showPlanSelector(){
   document.getElementById('appContent').style.display='none';
   document.getElementById('loadingScreen').style.display='none';
 
+  const me = await api('/api/me');
+  if(me && me.is_admin) document.getElementById('adminBtn').style.display='inline-block';
+
   const plans = await api('/api/plans');
   if(!plans) return;
   const list = document.getElementById('planList');
@@ -536,6 +550,26 @@ async function removeShare(username){
   const planId = getPlanId();
   await api('/api/plans/'+planId+'/share/'+username, 'DELETE');
   showShareModal();
+}
+async function showAdminPanel(){
+  document.getElementById('adminModal').style.display='flex';
+  const content = document.getElementById('adminContent');
+  try {
+    const users = await api('/api/admin/users');
+    let html = '<div style="margin-bottom:12px"><b>註冊用戶列表</b>（共 '+users.length+' 人）</div>';
+    html += '<div style="max-height:400px;overflow-y:auto">';
+    users.forEach(u => {
+      const d = new Date(u.created_at);
+      const dateStr = d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+      html += '<div><b>'+escHtml(u.username)+'</b>'+(u.is_admin?' 👑':'')+'<br><span style="font-size:11px;color:var(--sub)">註冊於 '+dateStr+'・'+u.plan_count+' 個行程</span></div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    content.innerHTML = html;
+  } catch(e) {
+    content.innerHTML = '<div style="color:red">載入失敗：'+e.message+'</div>';
+  }
 }
 async function joinPlan(){
   const code = document.getElementById('joinCodeInput').value.trim();
