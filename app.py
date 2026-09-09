@@ -122,7 +122,8 @@ class ExpenseData(BaseModel):
 def register(req: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == req.username).first():
         raise HTTPException(status_code=400, detail="帳號已存在")
-    user = User(username=req.username, password_hash=get_password_hash(req.password))
+    is_first = db.query(User).count() == 0
+    user = User(username=req.username, password_hash=get_password_hash(req.password), is_admin=is_first)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -141,7 +142,16 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
 
 @app.get("/api/me")
 def get_me(user: User = Depends(get_current_user)):
-    return {"id": user.id, "username": user.username}
+    return {"id": user.id, "username": user.username, "is_admin": user.is_admin}
+
+
+# ===== Admin Routes =====
+@app.get("/api/admin/users")
+def admin_list_users(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="需要管理員權限")
+    users = db.query(User).all()
+    return [{"id": u.id, "username": u.username, "is_admin": u.is_admin, "created_at": u.created_at.isoformat() if u.created_at else None, "plan_count": len(u.plans)} for u in users]
 
 
 # ===== Plan Routes =====
