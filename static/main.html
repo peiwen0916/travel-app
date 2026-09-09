@@ -552,12 +552,10 @@ async function removeShare(username){
   showShareModal();
 }
 async function showAdminPanel(){
-  document.getElementById('adminModal').style.display='flex';
-  const content = document.getElementById('adminContent');
+  const list = document.getElementById('planList');
   try {
     const users = await api('/api/admin/users');
-    let html = '<div style="margin-bottom:12px"><b>註冊用戶列表</b>（共 '+users.length+' 人）</div>';
-    html += '<div style="max-height:400px;overflow-y:auto">';
+    let html = '<div class="card"><div class="card-title">👑 管理後台（共 '+users.length+' 人）</div>';
     users.forEach(u => {
       const d = new Date(u.created_at);
       const dateStr = d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
@@ -566,9 +564,10 @@ async function showAdminPanel(){
       html += '</div>';
     });
     html += '</div>';
-    content.innerHTML = html;
+    html += '<div style="text-align:center;margin-top:12px"><button class="btn btn-outline" onclick="showPlanSelector()">⬅ 返回</button></div>';
+    list.innerHTML = html;
   } catch(e) {
-    content.innerHTML = '<div style="color:red">載入失敗：'+e.message+'</div>';
+    list.innerHTML = '<div class="card" style="color:red">載入失敗：'+e.message+'</div><div style="text-align:center;margin-top:12px"><button class="btn btn-outline" onclick="showPlanSelector()">⬅ 返回</button></div>';
   }
 }
 async function joinPlan(){
