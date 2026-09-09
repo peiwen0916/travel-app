@@ -462,7 +462,7 @@ async function saveToApi(){
   };
   await api('/api/plans/'+planId, 'PUT', planData);
   await api('/api/plans/'+planId+'/flights', 'PUT', D.flights.map((f,i)=>({fr:f.from||f.fr||'',to:f.to||'',date:f.date||'',time:f.time||'',tag:f.tag||'',price:f.price||0,order:i})));
-  await api('/api/plans/'+planId+'/hotels', 'PUT', D.hotels.map((h,i)=>({name:h.name||'',checkin:h.checkin||'',checkout:h.checkout||'',nights:h.nights||0,price:h.price||0,order:i})));
+  await api('/api/plans/'+planId+'/hotels', 'PUT', D.hotels.map((h,i)=>({name:h.name||'',checkin:h.checkin||'',checkout:h.checkout||'',nights:h.nights||0,order:i})));
   await api('/api/plans/'+planId+'/days', 'PUT', D.days.map((d,i)=>({date:d.date||'',label:d.label||'',order:i,items:(d.items||[]).map((it,j)=>({time:it.time||'',title:it.title||'',note:it.note||'',metro:it.metro||'',map_query:it.naver||it.map_query||'',order:j}))})));
   await api('/api/plans/'+planId+'/shopping', 'PUT', D.shopping.map((s,i)=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,split_with:s.splitWith||s.split_with||[],order:i,cur:s.cur||'KRW',jpy:s.jpy||0,usd:s.usd||0,photo:s.photo||'',date:s.date||''})));
   await api('/api/plans/'+planId+'/fixed', 'PUT', D.fixed.map((f,i)=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paid_by:f.paidBy||f.paid_by||'',split_with:f.splitWith||f.split_with||[],order:i})));
@@ -788,17 +788,28 @@ function removePerson(i){
 // ===== FLIGHTS =====
 function renderFlights(){
   const c=document.getElementById('flights');
-  c.innerHTML=D.flights.map((f,i)=>`
+  c.innerHTML=D.flights.map((f,i)=>{
+    const parts=(f.time||'').split('→');
+    const dt=parts[0]||'';
+    const at=parts[1]||'';
+    return `
     <div class="item" style="margin-bottom:6px">
       <button class="item-del" onclick="snapBefore();D.flights.splice(${i},1);renderFlights();debouncedSave()">×</button>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input value="${escHtml(f.from||'')}" onchange="D.flights[${i}].from=this.value;renderFlights();debouncedSave()" placeholder="出發" style="flex:1;min-width:80px">
-        <input value="${escHtml(f.to||'')}" onchange="D.flights[${i}].to=this.value;renderFlights();debouncedSave()" placeholder="抵達" style="flex:1;min-width:80px">
-        <input type="date" value="${f.date||''}" onchange="D.flights[${i}].date=this.value;renderFlights();debouncedSave()" placeholder="日期" style="width:130px;font-size:12px">
-        <input value="${escHtml(f.time||'')}" onchange="D.flights[${i}].time=this.value;renderFlights();debouncedSave()" placeholder="時間" style="width:100px">
+      <div style="display:flex;flex-direction:column;gap:4px;width:100%">
+        <div style="display:flex;gap:4px;align-items:center">
+          <input value="${escHtml(f.from||'')}" onchange="D.flights[${i}].from=this.value;debouncedSave()" placeholder="出發" style="flex:1;min-width:0;font-weight:600">
+          <span style="color:var(--sub);flex-shrink:0">→</span>
+          <input value="${escHtml(f.to||'')}" onchange="D.flights[${i}].to=this.value;debouncedSave()" placeholder="抵達" style="flex:1;min-width:0;font-weight:600">
+          <input type="date" value="${f.date||''}" onchange="D.flights[${i}].date=this.value;debouncedSave()" style="width:120px;font-size:12px;flex-shrink:0">
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input value="${escHtml(dt)}" onchange="D.flights[${i}].time=this.value+'→'+(D.flights[${i}].time.split('→')[1]||'');debouncedSave()" placeholder="出發時間" style="flex:1;min-width:0;font-size:12px;color:var(--accent)">
+          <span style="color:var(--sub);flex-shrink:0">→</span>
+          <input value="${escHtml(at)}" onchange="D.flights[${i}].time=(D.flights[${i}].time.split('→')[0]||'')+'→'+this.value;debouncedSave()" placeholder="抵達時間" style="flex:1;min-width:0;font-size:12px;color:var(--accent)">
+        </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 function addFlight(){ D.flights.push({from:'',to:'',date:'',time:'',tag:''}); renderFlights(); debouncedSave(); }
 
@@ -809,12 +820,10 @@ function renderHotels(){
     <div class="item" style="margin-bottom:6px">
       <button class="item-del" onclick="snapBefore();D.hotels.splice(${i},1);renderHotels();debouncedSave()">×</button>
       <input value="${escHtml(h.name||'')}" onchange="D.hotels[${i}].name=this.value;debouncedSave()" placeholder="飯店名稱">
-      <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
-        <input type="date" value="${h.checkin||''}" onchange="D.hotels[${i}].checkin=this.value;debouncedSave()" placeholder="入住" style="width:130px;font-size:12px">
-        <span style="color:var(--sub);font-size:11px;letter-spacing:1px">~</span>
-        <input type="date" value="${h.checkout||''}" onchange="D.hotels[${i}].checkout=this.value;debouncedSave()" placeholder="退房" style="width:130px;font-size:12px">
-        <span style="color:var(--orange);font-size:13px">💰</span>
-        <input type="number" value="${h.price||0}" onchange="D.hotels[${i}].price=+this.value;renderBudget();debouncedSave()" placeholder="金額" style="width:90px">
+      <div style="display:flex;gap:4px;align-items:center;margin-top:4px">
+        <input type="date" value="${h.checkin||''}" onchange="D.hotels[${i}].checkin=this.value;debouncedSave()" style="width:120px;font-size:12px">
+        <span style="color:var(--sub);font-size:12px">~</span>
+        <input type="date" value="${h.checkout||''}" onchange="D.hotels[${i}].checkout=this.value;debouncedSave()" style="width:120px;font-size:12px">
       </div>
     </div>
   `).join('');
