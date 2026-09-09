@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
+
+TW = timezone(timedelta(hours=8))
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///travel.db")
 if DATABASE_URL.startswith("postgres://"):
@@ -18,7 +20,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
     password_hash = Column(String(128), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(TW))
     plans = relationship("TravelPlan", back_populates="owner", cascade="all, delete-orphan")
 
 
@@ -36,8 +38,8 @@ class TravelPlan(Base):
     map_places = Column(JSON, default=[])
     shared_with = Column(JSON, default=[])
     share_code = Column(String(20), unique=True, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(TW))
+    updated_at = Column(DateTime, default=lambda: datetime.now(TW), onupdate=lambda: datetime.now(TW))
 
     owner = relationship("User", back_populates="plans")
     flights = relationship("Flight", back_populates="plan", cascade="all, delete-orphan")
