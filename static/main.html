@@ -164,7 +164,8 @@ body.locked .item .split-info{width:100%}
 
 <div id="appContent" style="display:none">
   <div class="header">
-    <input class="title" id="mainTitle" value="旅行規劃" onchange="D.title=this.value;debouncedSave()">
+    <button class="lock-btn" onclick="localStorage.removeItem('planId');showPlanSelector()" title="回首頁">⬅</button>
+    <input class="title" id="mainTitle" value="旅行規劃" onchange="D.title=this.value;debouncedSave()" style="flex:1">
     <div style="display:flex;gap:4px">
       <button class="lock-btn" onclick="exportData()" title="匯出">📤</button>
       <button class="lock-btn" onclick="document.getElementById('importFile').click()" title="匯入">📥</button>
