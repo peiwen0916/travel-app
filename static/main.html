@@ -804,7 +804,9 @@ function renderDays(){
   const c=document.getElementById('days');
   c.innerHTML=D.days.map((d,di)=>`
     <div class="card" style="margin-top:12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:10px">
+        <button class="item-del" style="position:static;font-size:10px;${di===0?'visibility:hidden':''}" onclick="moveDay(${di},-1)">▲</button>
+        <button class="item-del" style="position:static;font-size:10px;${di===D.days.length-1?'visibility:hidden':''}" onclick="moveDay(${di},1)">▼</button>
         <button class="item-del" style="position:static" onclick="D.days.splice(${di},1);renderDays();debouncedSave()">×</button>
         <input type="date" value="${d.date||''}" onchange="D.days[${di}].date=this.value;debouncedSave()" style="width:130px;font-size:12px;font-weight:700;border:none;background:none;padding:0">
         <input value="${escHtml(d.label||'')}" onchange="D.days[${di}].label=this.value;debouncedSave()" style="flex:1;font-weight:700;border:none;background:none;padding:0" placeholder="標題">
@@ -818,7 +820,11 @@ function renderDays(){
     if(!c) return;
     c.innerHTML=d.items.map((it,ii)=>`
       <div class="item">
-        <button class="item-del" onclick="D.days[${di}].items.splice(${ii},1);renderDays();debouncedSave()">×</button>
+        <div style="display:flex;align-items:center;gap:2px">
+          <button class="item-del" style="font-size:10px;width:18px;height:18px;${ii===0?'visibility:hidden':''}" onclick="moveItem(${di},${ii},-1)">▲</button>
+          <button class="item-del" style="font-size:10px;width:18px;height:18px;${ii===d.items.length-1?'visibility:hidden':''}" onclick="moveItem(${di},${ii},1)">▼</button>
+          <button class="item-del" onclick="D.days[${di}].items.splice(${ii},1);renderDays();debouncedSave()">×</button>
+        </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <input value="${escHtml(it.time||'')}" onchange="D.days[${di}].items[${ii}].time=this.value;debouncedSave()" placeholder="時間" style="width:90px;font-weight:600;color:var(--accent)">
           <input value="${escHtml(it.title||'')}" onchange="D.days[${di}].items[${ii}].title=this.value;debouncedSave()" placeholder="景點名稱" style="flex:1;min-width:120px;font-weight:600">
@@ -835,6 +841,17 @@ function renderDays(){
     `).join('');
   });
 }
+function moveDay(i,dir){
+  const j=i+dir;if(j<0||j>=D.days.length)return;
+  [D.days[i],D.days[j]]=[D.days[j],D.days[i]];
+  renderDays();debouncedSave();
+}
+function moveItem(di,ii,dir){
+  const items=D.days[di].items;const jj=ii+dir;
+  if(jj<0||jj>=items.length)return;
+  [items[ii],items[jj]]=[items[jj],items[ii]];
+  renderDays();debouncedSave();
+}
 function addItem(di){ D.days[di].items.push({time:'',title:'',note:'',metro:'',naver:''}); renderDays(); debouncedSave(); }
 function addDay(){ D.days.push({date:'',label:'',items:[]}); renderDays(); debouncedSave(); }
 
@@ -850,6 +867,10 @@ function renderShopping(){
     const cur=s.cur||'KRW';
     const localPrice=cur==='KRW'?s.kr:cur==='JPY'?(s.jpy||0):cur==='USD'?(s.usd||0):s.tw;
     const photoHtml=s.photo?'<div style="margin-top:6px"><img src="'+s.photo+'" style="max-height:189px;width:auto;aspect-ratio:3/4;object-fit:cover;border-radius:8px"></div>':'';
+    const moveBtns=`<div style="display:flex;flex-direction:column;gap:2px;margin-left:4px">
+      <button class="item-del" style="font-size:10px;width:20px;height:20px;${i===0?'visibility:hidden':''}" onclick="moveShop(${i},-1)">▲</button>
+      <button class="item-del" style="font-size:10px;width:20px;height:20px;${i===D.shopping.length-1?'visibility:hidden':''}" onclick="moveShop(${i},1)">▼</button>
+    </div>`;
     return `
     <div class="item" style="opacity:${s.bought?0.6:1}">
       <div class="item-head">
@@ -858,9 +879,11 @@ function renderShopping(){
         <button class="item-del" onclick="D.shopping.splice(${i},1);renderShopping();debouncedSave()">×</button>
       </div>
       <div class="item-body">
-        <input value="${escHtml(s.store||'')}" onchange="D.shopping[${i}].store=this.value;debouncedSave()" placeholder="店家" style="font-size:12px">
-        <input type="date" value="${s.date||''}" onchange="D.shopping[${i}].date=this.value;debouncedSave()" style="font-size:12px;width:130px">
-        <div style="display:flex;gap:4px;align-items:center;flex:1;min-width:120px">
+        <div style="display:flex;gap:4px;width:100%">
+          <input value="${escHtml(s.store||'')}" onchange="D.shopping[${i}].store=this.value;debouncedSave()" placeholder="店家" style="font-size:12px;flex:1">
+          <input type="date" value="${s.date||''}" onchange="D.shopping[${i}].date=this.value;debouncedSave()" style="font-size:12px;width:120px">
+        </div>
+        <div style="display:flex;gap:4px;align-items:center;width:100%;margin-top:4px">
           <select onchange="D.shopping[${i}].cur=this.value;renderShopping();debouncedSave()" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;width:auto">
             <option value="KRW"${cur==='KRW'?' selected':''}>₩ 韓元</option>
             <option value="JPY"${cur==='JPY'?' selected':''}>¥ 日圓</option>
@@ -868,10 +891,10 @@ function renderShopping(){
             <option value="TWD"${cur==='TWD'?' selected':''}>NT$ 台幣</option>
           </select>
           <input type="number" value="${localPrice||0}" onchange="updateShopPrice(${i},this.value);renderShopping();debouncedSave()" placeholder="金額" style="font-size:12px;flex:1">
-        </div>
-        <div class="price-row" style="flex:1;min-width:100px">
-          <span class="price-unit">NT$</span>
-          <input type="number" value="${s.tw||0}" onchange="D.shopping[${i}].tw=+this.value;updateShopKRFromTW(${i});renderShopping();debouncedSave()" placeholder="台幣" style="font-size:12px">
+          <span style="font-size:11px;color:var(--sub)">→</span>
+          <span style="font-size:11px;color:var(--sub)">NT$</span>
+          <input type="number" value="${s.tw||0}" onchange="D.shopping[${i}].tw=+this.value;updateShopKRFromTW(${i});renderShopping();debouncedSave()" placeholder="台幣" style="font-size:12px;flex:1">
+          ${moveBtns}
         </div>
         <div style="margin-top:4px">
           <label style="font-size:11px;color:var(--sub);cursor:pointer">📷 相片<input type="file" accept="image/*" style="display:none" onchange="shopAddPhoto(${i},this)"></label>
@@ -880,6 +903,11 @@ function renderShopping(){
       ${photoHtml}
     </div>`;
   }).join('');
+}
+function moveShop(i,dir){
+  const j=i+dir;if(j<0||j>=D.shopping.length)return;
+  [D.shopping[i],D.shopping[j]]=[D.shopping[j],D.shopping[i]];
+  renderShopping();debouncedSave();
 }
 function updateShopPrice(i,v){
   const s=D.shopping[i], cur=s.cur||'KRW';
