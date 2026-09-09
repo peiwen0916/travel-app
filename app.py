@@ -233,8 +233,10 @@ def list_plans(user: User = Depends(get_current_user), db: Session = Depends(get
     owned = db.query(TravelPlan).filter(TravelPlan.user_id == user.id).all()
     shared_ids = []
     for p in db.query(TravelPlan).filter(TravelPlan.shared_with != None).all():
-        if user.id in (p.shared_with or []):
-            shared_ids.append(p.id)
+        for s in (p.shared_with or []):
+            if s.get("user_id") == user.id:
+                shared_ids.append(p.id)
+                break
     shared = db.query(TravelPlan).filter(TravelPlan.id.in_(shared_ids)).all() if shared_ids else []
     result = []
     for p in owned + shared:
