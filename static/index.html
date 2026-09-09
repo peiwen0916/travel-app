@@ -83,6 +83,16 @@ function showError(msg){
   e.style.display='block';
 }
 
+function showSuccess(msg){
+  const e=document.getElementById('error');
+  e.textContent=msg;
+  e.style.display='block';
+  e.style.color='#16a34a';
+  e.style.background='#f0fdf4';
+  e.style.padding='8px 12px';
+  e.style.borderRadius='8px';
+}
+
 async function doLogin(){
   const username=document.getElementById('loginUser').value.trim();
   const password=document.getElementById('loginPass').value;
@@ -110,7 +120,8 @@ async function doRegister(){
     if(!res.ok)return showError(data.detail||'註冊失敗');
     localStorage.setItem('token',data.access_token);
     localStorage.setItem('username',username);
-    window.location.href='/app';
+    showSuccess('註冊成功！正在跳轉...');
+    setTimeout(()=>window.location.href='/app', 800);
   }catch(e){showError('網路錯誤')}
 }
 
