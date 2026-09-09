@@ -117,6 +117,7 @@ class ShoppingItem(Base):
     jpy = Column(Integer, default=0)
     usd = Column(Float, default=0)
     photo = Column(Text, default="")
+    date = Column(String(20), default="")
     plan = relationship("TravelPlan", back_populates="shopping")
 
 
@@ -160,6 +161,7 @@ def init_db():
             ("shopping", "jpy", "INTEGER DEFAULT 0"),
             ("shopping", "usd", "FLOAT DEFAULT 0"),
             ("shopping", "photo", "TEXT DEFAULT ''"),
+            ("shopping", "date", "VARCHAR(20) DEFAULT ''"),
         ]:
             try:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {typ}"))
