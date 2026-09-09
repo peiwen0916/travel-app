@@ -191,7 +191,6 @@ def get_plan(plan_id: int, user: User = Depends(get_current_user), db: Session =
 @app.put("/api/plans/{plan_id}")
 def update_plan(plan_id: int, req: PlanUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     plan = get_plan_with_access(plan_id, user, db)
-        raise HTTPException(status_code=404, detail="找不到行程")
     for k, v in req.dict(exclude_unset=True).items():
         setattr(plan, k, v)
     db.commit()
