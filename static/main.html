@@ -147,6 +147,13 @@ body.locked .item .split-info{width:100%}
     <p style="font-size:13px;color:var(--sub)">選擇一個行程繼續，或建立新的</p>
   </div>
   <div id="planList"></div>
+  <div class="card" style="margin-top:12px;text-align:center">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">📋 加入朋友的行程</div>
+    <div style="display:flex;gap:6px">
+      <input id="joinCodeInput" placeholder="輸入分享碼" style="flex:1;font-size:13px;text-transform:uppercase;letter-spacing:2px">
+      <button class="btn btn-sm btn-primary" onclick="joinPlan()">加入</button>
+    </div>
+  </div>
   <div class="plan-actions" style="justify-content:center;margin-top:16px">
     <button class="btn btn-primary" onclick="createPlan()">＋ 建立新行程</button>
     <button class="btn btn-outline" onclick="doLogout()">登出</button>
@@ -162,6 +169,7 @@ body.locked .item .split-info{width:100%}
       <button class="lock-btn" onclick="exportData()" title="匯出">📤</button>
       <button class="lock-btn" onclick="document.getElementById('importFile').click()" title="匯入">📥</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="lock-btn" onclick="showShareModal()" title="共享">👥</button>
       <button class="lock-btn" onclick="document.getElementById('helpModal').style.display='flex'" title="說明">❓</button>
       <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔓</button>
       <button class="lock-btn" onclick="doLogout()" title="登出">🚪</button>
@@ -186,6 +194,16 @@ body.locked .item .split-info{width:100%}
       </div>
       <button onclick="if(confirm('確定要重置嗎？')){doLogout()}" style="margin-top:12px;width:100%;padding:10px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-size:13px;font-weight:600;cursor:pointer">🚪 登出</button>
       <button onclick="document.getElementById('helpModal').style.display='none'" style="margin-top:8px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer">知道了</button>
+    </div>
+  </div>
+
+  <div id="shareModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px">👥 共享行程</div>
+      <div id="shareContent" style="font-size:13px;color:var(--text);line-height:1.8">
+        載入中...
+      </div>
+      <button onclick="document.getElementById('shareModal').style.display='none'" style="margin-top:16px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer">關閉</button>
     </div>
   </div>
 
@@ -475,6 +493,61 @@ async function loadPlan(){
   if(D.rateKRW) RATES.KRW = 1/D.rateKRW;
   if(D.rateJPY) RATES.JPY = 1/D.rateJPY;
   if(D.rateUSD) RATES.USD = 1/D.rateUSD;
+}
+
+// ===== SHARING =====
+async function showShareModal(){
+  const planId = getPlanId();
+  if(!planId) return;
+  document.getElementById('shareModal').style.display='flex';
+  const content = document.getElementById('shareContent');
+  try {
+    const data = await api('/api/plans/'+planId+'/share-code');
+    let html = '<div style="margin-bottom:12px"><b>分享碼：</b><span style="background:var(--bg);padding:4px 12px;border-radius:6px;font-size:18px;font-weight:700;letter-spacing:2px;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent);this.style.background=\'#dcfce7\';setTimeout(()=>this.style.background=\'var(--bg)\',1000)" title="點擊複製">'+data.share_code+'</span></div>';
+    html += '<div style="font-size:12px;color:var(--sub);margin-bottom:12px">把這個分享碼傳給朋友，朋友在行程頁面輸入即可加入共同編輯</div>';
+    html += '<div style="margin-bottom:12px"><b>已共享：</b></div>';
+    if(data.shared_with.length === 0){
+      html += '<div style="color:var(--sub);font-size:12px">還沒有共享給任何人</div>';
+    } else {
+      data.shared_with.forEach(u => {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span>'+u.username+'</span><button class="btn btn-sm btn-danger" onclick="removeShare(\''+u.username+'\')">移除</button></div>';
+      });
+    }
+    html += '<div style="margin-top:12px"><b>新增共享：</b></div>';
+    html += '<div style="display:flex;gap:6px;margin-top:4px"><input id="shareUsername" placeholder="輸入對方帳號" style="flex:1;font-size:13px"><button class="btn btn-sm btn-primary" onclick="addShare()">邀請</button></div>';
+    content.innerHTML = html;
+  } catch(e) {
+    content.innerHTML = '<div style="color:red">載入失敗：'+e.message+'</div>';
+  }
+}
+async function addShare(){
+  const username = document.getElementById('shareUsername').value.trim();
+  if(!username) return;
+  const planId = getPlanId();
+  try {
+    await api('/api/plans/'+planId+'/share', 'POST', {username: username});
+    document.getElementById('shareUsername').value = '';
+    showShareModal();
+  } catch(e) { alert('共享失敗：'+e.message); }
+}
+async function removeShare(username){
+  if(!confirm('確定要移除 '+username+' 的存取權限嗎？')) return;
+  const planId = getPlanId();
+  await api('/api/plans/'+planId+'/share/'+username, 'DELETE');
+  showShareModal();
+}
+async function joinPlan(){
+  const code = document.getElementById('joinCodeInput').value.trim();
+  if(!code) return;
+  try {
+    const result = await api('/api/plans/join/'+code, 'POST');
+    alert(result.message);
+    if(result.plan_id){
+      localStorage.setItem('planId', result.plan_id);
+      document.getElementById('joinCodeInput').value = '';
+      await showPlanSelector();
+    }
+  } catch(e) { alert('加入失敗：'+e.message); }
 }
 
 // ===== EXPORT / IMPORT =====
