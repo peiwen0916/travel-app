@@ -875,7 +875,7 @@ function renderShopping(){
   c.innerHTML=D.shopping.map((s,i)=>{
     const cur=s.cur||'KRW';
     const localPrice=cur==='KRW'?s.kr:cur==='JPY'?(s.jpy||0):cur==='USD'?(s.usd||0):s.tw;
-    const photoHtml=s.photo?'<div style="margin-top:6px"><img src="'+s.photo+'" style="max-height:189px;width:auto;aspect-ratio:3/4;object-fit:cover;border-radius:8px"></div>':'';
+    const photoHtml=s.photo?'<div style="margin-top:6px"><img src="'+s.photo+'" style="max-height:189px;width:auto;border-radius:8px"></div>':'';
     const moveBtns=`<div style="display:flex;flex-direction:column;gap:2px;margin-left:4px">
       <button class="item-del" style="font-size:10px;width:20px;height:20px;${i===0?'visibility:hidden':''}" onclick="moveShop(${i},-1)">▲</button>
       <button class="item-del" style="font-size:10px;width:20px;height:20px;${i===D.shopping.length-1?'visibility:hidden':''}" onclick="moveShop(${i},1)">▼</button>
@@ -936,8 +936,18 @@ function shopAddPhoto(i,input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=function(ev){
-    D.shopping[i].photo=ev.target.result;
-    renderShopping();debouncedSave();
+    const img=new Image();
+    img.onload=function(){
+      const maxH=189,maxW=Math.round(189*3/4);
+      let w=img.width,h=img.height;
+      if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      D.shopping[i].photo=c.toDataURL('image/jpeg',0.85);
+      renderShopping();debouncedSave();
+    };
+    img.src=ev.target.result;
   };
   reader.readAsDataURL(file);
 }
