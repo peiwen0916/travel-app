@@ -135,6 +135,7 @@ class ShoppingData(BaseModel):
     jpy: int = 0
     usd: float = 0
     photo: str = ""
+    date: str = ""
 
 class ExpenseData(BaseModel):
     id: Optional[int] = None
@@ -493,7 +494,7 @@ def serialize_plan(plan: TravelPlan) -> dict:
             }
             for d in sorted(plan.days, key=lambda x: x.order)
         ],
-        "shopping": [{"id": s.id, "name": s.name, "store": s.store, "kr": s.kr, "tw": s.tw, "bought": s.bought, "split_with": s.split_with or [], "cur": s.cur or "KRW", "jpy": s.jpy or 0, "usd": s.usd or 0, "photo": s.photo or ""} for s in sorted(plan.shopping, key=lambda x: x.order)],
+        "shopping": [{"id": s.id, "name": s.name, "store": s.store, "kr": s.kr, "tw": s.tw, "bought": s.bought, "split_with": s.split_with or [], "cur": s.cur or "KRW", "jpy": s.jpy or 0, "usd": s.usd or 0, "photo": s.photo or "", "date": s.date or ""} for s in sorted(plan.shopping, key=lambda x: x.order)],
         "fixed": [{"id": f.id, "name": f.name, "note": f.note, "cur": f.cur, "amt": f.amt, "paid_by": f.paid_by, "split_with": f.split_with or []} for f in sorted(plan.fixed_expenses, key=lambda x: x.order)],
         "other": [{"id": o.id, "name": o.name, "note": o.note, "cur": o.cur, "amt": o.amt, "paid_by": o.paid_by, "split_with": o.split_with or []} for o in sorted(plan.other_expenses, key=lambda x: x.order)],
     }
