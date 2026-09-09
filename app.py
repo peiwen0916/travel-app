@@ -29,19 +29,24 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     init_db()
-    from sqlalchemy import text
+    from sqlalchemy import text, inspect
     db = SessionLocal()
     try:
-        db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE"))
-        db.commit()
-    except:
+        inspector = inspect(db.bind)
+        columns = [c['name'] for c in inspector.get_columns('users')]
+        if 'is_admin' not in columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE"))
+            db.commit()
+    except Exception as e:
+        print(f"ALTER TABLE error: {e}")
         db.rollback()
     try:
         first_user = db.query(User).order_by(User.id).first()
-        if first_user and not first_user.is_admin:
+        if first_user:
             first_user.is_admin = True
             db.commit()
-    except:
+    except Exception as e:
+        print(f"Set admin error: {e}")
         db.rollback()
     db.close()
 
@@ -158,6 +163,16 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
 @app.get("/api/me")
 def get_me(user: User = Depends(get_current_user)):
     return {"id": user.id, "username": user.username, "is_admin": user.is_admin}
+
+
+@app.post("/api/admin/force-admin")
+def force_admin(req: RegisterRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == req.username).first()
+    if not user or not verify_password(req.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="帳號或密碼錯誤")
+    user.is_admin = True
+    db.commit()
+    return {"ok": True, "message": f"{user.username} 已設為管理員"}
 
 
 # ===== Admin Routes =====
