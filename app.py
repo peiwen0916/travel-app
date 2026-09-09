@@ -184,6 +184,20 @@ def admin_list_users(user: User = Depends(get_current_user), db: Session = Depen
     return [{"id": u.id, "username": u.username, "is_admin": u.is_admin, "created_at": u.created_at.isoformat() if u.created_at else None, "plan_count": len(u.plans)} for u in users]
 
 
+@app.delete("/api/admin/users/{user_id}")
+def admin_delete_user(user_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="需要管理員權限")
+    if user_id == user.id:
+        raise HTTPException(status_code=400, detail="不能刪除自己的帳號")
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="找不到用戶")
+    db.delete(target)
+    db.commit()
+    return {"ok": True, "message": f"已刪除 {target.username}"}
+
+
 # ===== Plan Routes =====
 def get_plan_with_access(plan_id: int, user: User, db: Session) -> TravelPlan:
     plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id).first()
