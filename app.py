@@ -12,6 +12,8 @@ from models import (
 from auth import (
     get_password_hash, verify_password, create_access_token, get_current_user
 )
+import string
+import random
 
 app = FastAPI(title="Travel Planner")
 
@@ -27,6 +29,10 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     init_db()
+
+
+def generate_share_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
 # ===== Pydantic Models =====
@@ -139,15 +145,37 @@ def get_me(user: User = Depends(get_current_user)):
 
 
 # ===== Plan Routes =====
+def get_plan_with_access(plan_id: int, user: User, db: Session) -> TravelPlan:
+    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="找不到行程")
+    shared = plan.shared_with or []
+    if plan.user_id != user.id and user.id not in shared:
+        raise HTTPException(status_code=403, detail="無權限存取此行程")
+    return plan
+
+
 @app.get("/api/plans")
 def list_plans(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    plans = db.query(TravelPlan).filter(TravelPlan.user_id == user.id).order_by(TravelPlan.updated_at.desc()).all()
-    return [{"id": p.id, "title": p.title, "updated_at": p.updated_at.isoformat()} for p in plans]
+    owned = db.query(TravelPlan).filter(TravelPlan.user_id == user.id).all()
+    shared_ids = []
+    for p in db.query(TravelPlan).filter(TravelPlan.shared_with != None).all():
+        if user.id in (p.shared_with or []):
+            shared_ids.append(p.id)
+    shared = db.query(TravelPlan).filter(TravelPlan.id.in_(shared_ids)).all() if shared_ids else []
+    result = []
+    for p in owned + shared:
+        result.append({
+            "id": p.id, "title": p.title,
+            "updated_at": p.updated_at.isoformat(),
+            "owner": p.user_id == user.id
+        })
+    return result
 
 
 @app.post("/api/plans")
 def create_plan(req: PlanCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    plan = TravelPlan(user_id=user.id, title=req.title)
+    plan = TravelPlan(user_id=user.id, title=req.title, share_code=generate_share_code())
     db.add(plan)
     db.commit()
     db.refresh(plan)
@@ -156,16 +184,13 @@ def create_plan(req: PlanCreate, user: User = Depends(get_current_user), db: Ses
 
 @app.get("/api/plans/{plan_id}")
 def get_plan(plan_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user.id).first()
-    if not plan:
-        raise HTTPException(status_code=404, detail="找不到行程")
+    plan = get_plan_with_access(plan_id, user, db)
     return serialize_plan(plan)
 
 
 @app.put("/api/plans/{plan_id}")
 def update_plan(plan_id: int, req: PlanUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user.id).first()
-    if not plan:
+    plan = get_plan_with_access(plan_id, user, db)
         raise HTTPException(status_code=404, detail="找不到行程")
     for k, v in req.dict(exclude_unset=True).items():
         setattr(plan, k, v)
@@ -181,6 +206,77 @@ def delete_plan(plan_id: int, user: User = Depends(get_current_user), db: Sessio
     db.delete(plan)
     db.commit()
     return {"ok": True}
+
+
+class ShareRequest(BaseModel):
+    username: str
+
+
+@app.get("/api/plans/{plan_id}/share-code")
+def get_share_code(plan_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user.id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="找不到行程")
+    if not plan.share_code:
+        plan.share_code = generate_share_code()
+        db.commit()
+    shared_users = []
+    for uid in (plan.shared_with or []):
+        u = db.query(User).filter(User.id == uid).first()
+        if u:
+            shared_users.append({"id": u.id, "username": u.username})
+    return {"share_code": plan.share_code, "shared_with": shared_users}
+
+
+@app.post("/api/plans/{plan_id}/share")
+def share_plan(plan_id: int, req: ShareRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user.id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="找不到行程")
+    target = db.query(User).filter(User.username == req.username).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="找不到使用者：" + req.username)
+    if target.id == user.id:
+        raise HTTPException(status_code=400, detail="不能共享給自己")
+    shared = plan.shared_with or []
+    if target.id in shared:
+        raise HTTPException(status_code=400, detail="已經共享過了")
+    shared.append(target.id)
+    plan.shared_with = shared
+    db.commit()
+    return {"ok": True, "shared_with": req.username}
+
+
+@app.delete("/api/plans/{plan_id}/share/{username}")
+def unshare_plan(plan_id: int, username: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user.id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="找不到行程")
+    target = db.query(User).filter(User.username == username).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="找不到使用者")
+    shared = plan.shared_with or []
+    if target.id in shared:
+        shared.remove(target.id)
+        plan.shared_with = shared
+        db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/plans/join/{share_code}")
+def join_plan(share_code: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    plan = db.query(TravelPlan).filter(TravelPlan.share_code == share_code).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="找不到此分享碼對應的行程")
+    if plan.user_id == user.id:
+        return {"ok": True, "plan_id": plan.id, "message": "這是你自己的行程"}
+    shared = plan.shared_with or []
+    if user.id in shared:
+        return {"ok": True, "plan_id": plan.id, "message": "你已經有存取權限"}
+    shared.append(user.id)
+    plan.shared_with = shared
+    db.commit()
+    return {"ok": True, "plan_id": plan.id, "message": "已成功加入共享"}
 
 
 # ===== Sub-item Routes =====
@@ -254,9 +350,12 @@ def update_other(plan_id: int, items: List[ExpenseData], user: User = Depends(ge
 
 # ===== Helpers =====
 def get_user_plan(plan_id: int, user_id: int, db: Session) -> TravelPlan:
-    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id, TravelPlan.user_id == user_id).first()
+    plan = db.query(TravelPlan).filter(TravelPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="找不到行程")
+    shared = plan.shared_with or []
+    if plan.user_id != user_id and user_id not in shared:
+        raise HTTPException(status_code=403, detail="無權限存取此行程")
     return plan
 
 
@@ -271,6 +370,8 @@ def serialize_plan(plan: TravelPlan) -> dict:
         "people": plan.people or [],
         "tips": plan.tips or {},
         "map_places": plan.map_places or [],
+        "share_code": plan.share_code,
+        "owner_id": plan.user_id,
         "flights": [{"id": f.id, "fr": f.fr, "to": f.to, "date": f.date, "time": f.time, "tag": f.tag, "price": f.price} for f in sorted(plan.flights, key=lambda x: x.order)],
         "hotels": [{"id": h.id, "name": h.name, "checkin": h.checkin, "checkout": h.checkout, "nights": h.nights, "price": h.price} for h in sorted(plan.hotels, key=lambda x: x.order)],
         "days": [
