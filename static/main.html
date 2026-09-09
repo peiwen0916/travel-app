@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>旅行規劃</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+:root{--bg:#fafafa;--card:#fff;--text:#1a1a1a;--sub:#888;--accent:#2563eb;--border:#e5e5e5;--green:#16a34a;--red:#dc2626;--orange:#ea580c;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,0.06)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-tap-highlight-color:transparent}
+
+.header{position:sticky;top:0;z-index:50;background:rgba(250,250,250,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.title{font-size:17px;font-weight:700;border:none;background:none;color:var(--text);width:100%;text-align:center;font-family:inherit;outline:none}
+.title:focus{background:var(--border);border-radius:6px}
+
+.tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);background:var(--card);position:sticky;top:49px;z-index:49}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 16px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+
+.page{display:none;padding:16px;padding-bottom:80px}
+.page.on{display:block}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.card-title{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+
+input,textarea,select{font-family:inherit;font-size:14px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;width:100%;background:var(--bg);color:var(--text);outline:none;transition:border .2s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:60px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:active{opacity:.8}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text)}
+.btn-outline:active{background:var(--bg)}
+.btn-add{width:100%;padding:14px;border:2px dashed var(--border);border-radius:var(--radius);background:none;color:var(--sub);font-size:14px;cursor:pointer;font-family:inherit}
+.btn-add:active{background:var(--bg)}
+
+.item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;box-shadow:var(--shadow);position:relative}
+.item-head{display:flex;align-items:center;gap:10px}
+.item-body{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}
+.item-body input,.item-body select{flex:1;min-width:0}
+.item-del{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;border:none;background:var(--bg);color:var(--sub);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.item-del:active{background:#fee2e2;color:var(--red)}
+
+.chk{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);appearance:none;-webkit-appearance:none;cursor:pointer;flex-shrink:0;position:relative;transition:all .2s}
+.chk:checked{background:var(--accent);border-color:var(--accent)}
+.chk:checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:12px;font-weight:700}
+
+.price-row{display:flex;gap:8px;align-items:center}
+.price-row input{flex:1}
+.price-unit{font-size:12px;color:var(--sub);flex-shrink:0;min-width:32px}
+
+.summary{background:linear-gradient(135deg,#1e40af,#2563eb);border-radius:var(--radius);padding:20px;color:#fff;margin-bottom:16px}
+.summary-label{font-size:12px;opacity:.8}
+.summary-amount{font-size:28px;font-weight:700}
+.summary-row{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;opacity:.9}
+
+.split-bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.split-bar input{width:70px;text-align:center;flex:none}
+.split-result{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);padding:14px;font-size:14px;color:#166534}
+.split-result .amt{font-size:20px;font-weight:700}
+
+.people-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.person-tag{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--text);transition:all .2s}
+.person-tag.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.person-tag .x{width:16px;height:16px;border-radius:50%;border:none;background:rgba(0,0,0,0.1);color:inherit;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.person-tag.active .x{background:rgba(255,255,255,0.3)}
+.add-person{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px dashed var(--border);background:none;color:var(--sub)}
+
+.split-info{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center}
+.split-label{font-size:11px;color:var(--sub);min-width:40px}
+.split-chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);appearance:none;-webkit-appearance:none;cursor:pointer;position:relative;transition:all .2s}
+.split-chk:checked{background:var(--green);border-color:var(--green)}
+.split-chk:checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:9px;font-weight:700}
+
+.settle-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.settle-item:last-child{border-bottom:none}
+.settle-arrow{color:var(--accent);font-weight:700;margin:0 6px}
+.settle-amt{font-weight:700;color:var(--red)}
+
+.naver-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#03c75a;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;margin-top:4px}
+.lock-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--sub);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.lock-btn.locked{background:#fef2f2;color:var(--red);border-color:#fecaca}
+body.locked input:not(#mainTitle):not(#newPersonInput):not(#mapSearchInput),body.locked select,body.locked textarea{pointer-events:none;opacity:.5}
+body.locked [contenteditable]{pointer-events:none;opacity:.85}
+body.locked .btn-add,body.locked .item-del,body.locked .chk{pointer-events:none;opacity:.4}
+body.locked .split-chk{pointer-events:none;opacity:.3 !important}
+body.locked .split-info label{pointer-events:none;opacity:.5}
+body.locked .person-tag .x{pointer-events:none;opacity:.4}
+body.locked .btn-add,body.locked .add-row,body.locked .add-person{display:none !important}
+body.locked .item{padding:8px 10px;margin-bottom:4px}
+body.locked .item-head{gap:6px}
+body.locked .item-body{gap:4px;margin-top:4px}
+body.locked .split-info{margin-top:2px;gap:4px}
+body.locked .hint{display:none}
+body.locked .item input:not([type="checkbox"]):not([type="radio"]){border:none;background:none;padding:0;font-size:13px}
+body.locked .item select{border:none;background:none;padding:0;font-size:12px}
+body.locked .item input[type="checkbox"]{opacity:.7}
+.cmpt{display:inline;font-size:13px;margin-right:6px}
+.cmpt[style*="font-weight"]{font-weight:700}
+.tag-sm{font-size:11px;background:#eff6ff;color:var(--accent);padding:1px 6px;border-radius:4px;margin-right:4px}
+body.locked .item{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
+body.locked .item .item-del{display:none}
+body.locked .item .item-body{width:100%;display:flex;flex-wrap:wrap;gap:4px}
+body.locked .item .split-info{width:100%}
+
+.wx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.wx{text-align:center;padding:12px 8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.wx-day{font-size:11px;color:var(--sub)}
+.wx-date{font-size:14px;font-weight:700;margin:2px 0}
+.wx-icon{font-size:24px;margin:4px 0}
+.wx-temp{font-size:14px;font-weight:700;color:var(--accent)}
+.wx-desc{font-size:11px;color:var(--sub)}
+
+#mapframe{width:100%;height:60vh;border:none;border-radius:var(--radius);border:1px solid var(--border)}
+.hint{text-align:center;font-size:11px;color:var(--sub);padding:8px}
+[contenteditable]{outline:none;border-radius:4px;transition:background .2s}
+[contenteditable]:focus{background:#eff6ff}
+[contenteditable]:empty::before{content:attr(data-placeholder);color:#ccc}
+
+.add-row{display:flex;gap:6px;margin-top:8px}
+.add-row input{flex:1}
+.add-row button{flex:none}
+
+.tab-group{display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.tab-group .tg{padding:8px 14px;font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.tab-group .tg.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+.plan-selector{max-width:480px;margin:60px auto;padding:0 16px}
+.plan-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .2s}
+.plan-card:hover{border-color:var(--accent)}
+.plan-card .plan-title{font-size:15px;font-weight:700}
+.plan-card .plan-meta{font-size:12px;color:var(--sub);margin-top:4px}
+.plan-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.loading-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:14px;color:var(--sub)}
+</style>
+</head>
+<body>
+
+<div id="planSelectorScreen" class="plan-selector" style="display:none">
+  <div style="text-align:center;margin-bottom:24px">
+    <h1 style="font-size:24px;font-weight:700;margin-bottom:4px">✈️ 旅行規劃</h1>
+    <p style="font-size:13px;color:var(--sub)">選擇一個行程繼續，或建立新的</p>
+  </div>
+  <div id="planList"></div>
+  <div class="plan-actions" style="justify-content:center;margin-top:16px">
+    <button class="btn btn-primary" onclick="createPlan()">＋ 建立新行程</button>
+    <button class="btn btn-outline" onclick="doLogout()">登出</button>
+  </div>
+</div>
+
+<div id="loadingScreen" class="loading-screen" style="display:none">載入中...</div>
+
+<div id="appContent" style="display:none">
+  <div class="header">
+    <input class="title" id="mainTitle" value="旅行規劃" onchange="D.title=this.value;debouncedSave()">
+    <div style="display:flex;gap:4px">
+      <button class="lock-btn" onclick="exportData()" title="匯出">📤</button>
+      <button class="lock-btn" onclick="document.getElementById('importFile').click()" title="匯入">📥</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="lock-btn" onclick="document.getElementById('helpModal').style.display='flex'" title="說明">❓</button>
+      <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔓</button>
+      <button class="lock-btn" onclick="doLogout()" title="登出">🚪</button>
+    </div>
+  </div>
+
+  <div id="helpModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px">📱 儲存到手機</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--text)">
+        <div style="font-weight:600;margin-bottom:4px">iPhone（Safari）</div>
+        <div>1. 點網址列左邊「分享」按鈕 <span style="background:#f0f0f0;padding:2px 6px;border-radius:4px">⬆️</span></div>
+        <div>2. 往下滑找到「加入主畫面」</div>
+        <div>3. 按右上角「加入」確認</div>
+        <br>
+        <div style="font-weight:600;margin-bottom:4px">Android（Chrome）</div>
+        <div>1. 點右上角選單 <span style="background:#f0f0f0;padding:2px 6px;border-radius:4px">⋮</span></div>
+        <div>2. 選「下載」或「加入主畫面」</div>
+        <div>3. 下載後可用檔案管理器開啟</div>
+        <br>
+        <div style="font-size:12px;color:var(--sub)">💾 儲存到手機後離線也能用<br>📤 匯出 JSON 可備份或分享給朋友</div>
+      </div>
+      <button onclick="if(confirm('確定要重置嗎？')){doLogout()}" style="margin-top:12px;width:100%;padding:10px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-size:13px;font-weight:600;cursor:pointer">🚪 登出</button>
+      <button onclick="document.getElementById('helpModal').style.display='none'" style="margin-top:8px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer">知道了</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-p="itinerary">📅 行程</button>
+    <button class="tab" data-p="shopping">🛒 購物</button>
+    <button class="tab" data-p="budget">💰 花費</button>
+    <button class="tab" data-p="weather">🌤️ 天氣</button>
+    <button class="tab" data-p="map">🗺️ 地圖</button>
+    <button class="tab" data-p="tips">📌 攻略</button>
+  </div>
+
+  <!-- ===== ITINERARY ===== -->
+  <div class="page on" id="p-itinerary">
+    <div class="card">
+      <div class="card-title">✈️ 機票</div>
+      <div id="flights"></div>
+      <button class="btn-add" onclick="addFlight()">+ 新增航班</button>
+    </div>
+    <div class="card">
+      <div class="card-title">🏨 住宿</div>
+      <div id="hotels"></div>
+      <button class="btn-add" onclick="addHotel()">+ 新增住宿</button>
+    </div>
+    <div id="days"></div>
+    <button class="btn-add" onclick="addDay()">+ 新增一天</button>
+  </div>
+
+  <!-- ===== SHOPPING ===== -->
+  <div class="page" id="p-shopping">
+    <div class="summary">
+      <div class="summary-label">購物清單總計</div>
+      <div class="summary-amount" id="shopTotal">NT$0</div>
+      <div class="summary-row"><span>韓元總計</span><span id="shopTotalKRW">₩0</span></div>
+    </div>
+    <div id="shopList"></div>
+    <button class="btn-add" onclick="addShopItem()">+ 新增購物品項</button>
+    <div class="hint">勾選「已購買」會自動計入花費頁面</div>
+  </div>
+
+  <!-- ===== BUDGET ===== -->
+  <div class="page" id="p-budget">
+    <div class="summary">
+      <div class="summary-label">總花費</div>
+      <div class="summary-amount" id="budgetTotal">NT$0</div>
+      <div class="summary-row"><span>固定支出</span><span id="fixedTotal">NT$0</span></div>
+      <div class="summary-row"><span>購物（已勾選）</span><span id="shopInBudget">NT$0</span></div>
+      <div class="summary-row"><span>其他支出</span><span id="otherTotal">NT$0</span></div>
+      <div id="personSummaryInBudget" style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.3)"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💱 匯率設定</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px">
+        <div style="display:flex;gap:4px;align-items:center">
+          <span>₩ 韓元</span>
+          <input type="number" id="rateKRW" step="0.001" onchange="updateRates()" style="width:70px;font-size:12px;padding:6px">
+          <span>= 1 NT$</span>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span>¥ 日圓</span>
+          <input type="number" id="rateJPY" step="0.01" onchange="updateRates()" style="width:70px;font-size:12px;padding:6px">
+          <span>= 1 NT$</span>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span>$ 美金</span>
+          <input type="number" id="rateUSD" step="0.01" onchange="updateRates()" style="width:70px;font-size:12px;padding:6px">
+          <span>= 1 NT$</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">👥 參與人員</div>
+      <div class="people-tags" id="peopleTags"></div>
+      <div class="add-row">
+        <input id="newPersonInput" placeholder="輸入人名" style="font-size:13px" onkeydown="if(event.key==='Enter'){addPerson();event.preventDefault()}">
+        <button class="btn btn-sm btn-outline" onclick="addPerson()">＋</button>
+      </div>
+    </div>
+
+    <div class="card" id="personSpendCard">
+      <div class="card-title">💰 每人花費</div>
+      <div id="personSpendList"></div>
+    </div>
+
+    <div class="card" id="settleCard" style="display:none">
+      <div class="card-title">💸 結算（誰要給誰多少）</div>
+      <div id="settleList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📌 固定支出</div>
+      <div id="fixedList"></div>
+      <button class="btn-add" onclick="addFixed()">+ 新增支出</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📝 其他支出</div>
+      <div id="otherList"></div>
+      <button class="btn-add" onclick="addOther()">+ 新增支出</button>
+    </div>
+  </div>
+
+  <!-- ===== WEATHER ===== -->
+  <div class="page" id="p-weather">
+    <div class="card">
+      <div class="card-title">🌤️ 天氣預報</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+        <input id="wxLocationInput" placeholder="地名" value="Busan" style="font-size:13px;flex:1;min-width:100px">
+        <input type="date" id="wxStartDate" style="font-size:13px;width:auto">
+        <input type="date" id="wxEndDate" style="font-size:13px;width:auto">
+        <button class="btn btn-sm btn-primary" onclick="fetchWeather()">查詢</button>
+      </div>
+      <div id="wxGrid" class="wx-grid"></div>
+      <div id="wxLoading" style="display:none;text-align:center;padding:16px;color:var(--sub);font-size:13px">載入中...</div>
+      <div id="wxError" style="display:none;text-align:center;padding:16px;color:var(--red);font-size:13px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🧳 穿搭建議</div>
+      <div id="wxDressTip" style="font-size:13px;color:var(--sub)"></div>
+    </div>
+  </div>
+
+  <!-- ===== MAP ===== -->
+  <div class="page" id="p-map">
+    <div class="card">
+      <div style="display:flex;gap:6px">
+        <input id="mapSearchInput" placeholder="🔍 搜尋景點（中/韓文皆可）" style="font-size:14px;padding:12px" onkeydown="if(event.key==='Enter'){doMapSearch();event.preventDefault()}">
+        <button class="btn btn-primary" onclick="doMapSearch()" style="flex:none;padding:12px 16px">搜尋</button>
+      </div>
+      <div id="mapSearchResult" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📍 常用地點</div>
+      <div id="mapLinks"></div>
+    </div>
+  </div>
+
+  <!-- ===== TIPS ===== -->
+  <div class="page" id="p-tips">
+    <div class="card"><div class="card-title">🚇 交通</div><div id="tipTransport" contenteditable="true" data-placeholder="點擊編輯..."></div></div>
+    <div class="card"><div class="card-title">📱 必備 APP</div><div id="tipApps" contenteditable="true" data-placeholder="點擊編輯..."></div></div>
+    <div class="card"><div class="card-title">🍽️ 必吃美食</div><div id="tipFood" contenteditable="true" data-placeholder="點擊編輯..."></div></div>
+    <div class="card"><div class="card-title">📸 最佳拍照時間</div><div id="tipPhoto" contenteditable="true" data-placeholder="點擊編輯..."></div></div>
+    <div class="card"><div class="card-title">⚠️ 注意事項</div><div id="tipWarn" contenteditable="true" data-placeholder="點擊編輯..."></div></div>
+  </div>
+</div>
+
+<script>
+let RATE = 0.022;
+const RATES = {KRW: 0.022, JPY: 0.22, USD: 31};
+
+const D = {
+  title: '旅行規劃', locked: false, people: [], flights: [], hotels: [], days: [],
+  shopping: [], fixed: [], other: [], tips: {}, mapPlaces: [],
+  rateKRW: 45.5, rateJPY: 4.5, rateUSD: 0.032
+};
+
+// ===== AUTH & API =====
+function getToken(){ return localStorage.getItem('token'); }
+function getPlanId(){ return localStorage.getItem('planId'); }
+
+async function api(path, method='GET', body=null){
+  const token = getToken();
+  if(!token){ window.location.href='/'; return null; }
+  const opts = {method, headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}};
+  if(body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if(res.status===401){ localStorage.clear(); window.location.href='/'; return null; }
+  return res.json();
+}
+
+// ===== AUTO-SAVE (debounced) =====
+let saveTimer = null;
+function debouncedSave(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ saveToApi(); }, 500);
+}
+
+async function saveToApi(){
+  const planId = getPlanId();
+  if(!planId) return;
+
+  const planData = {
+    title: D.title,
+    locked: D.locked,
+    rate_krw: D.rateKRW,
+    rate_jpy: D.rateJPY,
+    rate_usd: D.rateUSD,
+    people: D.people,
+    tips: D.tips,
+    map_places: D.mapPlaces
+  };
+  await api('/api/plans/'+planId, 'PUT', planData);
+  await api('/api/plans/'+planId+'/flights', 'PUT', D.flights.map((f,i)=>({fr:f.from||f.fr||'',to:f.to||'',date:f.date||'',time:f.time||'',tag:f.tag||'',price:f.price||0,order:i})));
+  await api('/api/plans/'+planId+'/hotels', 'PUT', D.hotels.map((h,i)=>({name:h.name||'',checkin:h.checkin||'',checkout:h.checkout||'',nights:h.nights||0,price:h.price||0,order:i})));
+  await api('/api/plans/'+planId+'/days', 'PUT', D.days.map((d,i)=>({date:d.date||'',label:d.label||'',order:i,items:(d.items||[]).map((it,j)=>({time:it.time||'',title:it.title||'',note:it.note||'',metro:it.metro||'',map_query:it.naver||it.map_query||'',order:j}))})));
+  await api('/api/plans/'+planId+'/shopping', 'PUT', D.shopping.map((s,i)=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,split_with:s.splitWith||s.split_with||[],order:i})));
+  await api('/api/plans/'+planId+'/fixed', 'PUT', D.fixed.map((f,i)=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paid_by:f.paidBy||f.paid_by||'',split_with:f.splitWith||f.split_with||[],order:i})));
+  await api('/api/plans/'+planId+'/other', 'PUT', D.other.map((o,i)=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paid_by:o.paidBy||o.paid_by||'',split_with:o.splitWith||o.split_with||[],order:i})));
+}
+
+// ===== PLAN SELECTOR =====
+async function showPlanSelector(){
+  document.getElementById('planSelectorScreen').style.display='block';
+  document.getElementById('appContent').style.display='none';
+  document.getElementById('loadingScreen').style.display='none';
+
+  const plans = await api('/api/plans');
+  if(!plans) return;
+  const list = document.getElementById('planList');
+
+  if(!plans.length){
+    list.innerHTML='<div class="card" style="text-align:center;color:var(--sub);padding:24px">還沒有任何行程<br><br>點擊下方按鈕建立第一個</div>';
+    return;
+  }
+
+  list.innerHTML=plans.map(p=>{
+    const d=new Date(p.updated_at);
+    const dateStr=d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    return `
+      <div class="plan-card" onclick="selectPlan(${p.id})">
+        <div class="plan-title">${escHtml(p.title)}</div>
+        <div class="plan-meta">更新於 ${dateStr}</div>
+        <div class="plan-actions">
+          <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();selectPlan(${p.id})">開啟</button>
+          <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deletePlanConfirm(${p.id},'${escHtml(p.title)}')">刪除</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function selectPlan(id){
+  localStorage.setItem('planId', id);
+  document.getElementById('planSelectorScreen').style.display='none';
+  document.getElementById('loadingScreen').style.display='flex';
+  await loadPlan();
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('appContent').style.display='block';
+}
+
+async function createPlan(){
+  const title = prompt('行程名稱：', '旅行規劃');
+  if(!title) return;
+  const res = await api('/api/plans', 'POST', {title});
+  if(res && res.id){
+    await selectPlan(res.id);
+  }
+}
+
+async function deletePlanConfirm(id, title){
+  if(!confirm('確定要刪除「'+title+'」嗎？此操作無法復原。')) return;
+  await api('/api/plans/'+id, 'DELETE');
+  showPlanSelector();
+}
+
+function doLogout(){
+  localStorage.clear();
+  window.location.href='/';
+}
+
+// ===== LOAD FROM API =====
+async function loadPlan(){
+  const planId = getPlanId();
+  if(!planId){ showPlanSelector(); return; }
+  const data = await api('/api/plans/'+planId);
+  if(!data || data.detail){ showPlanSelector(); return; }
+
+  D.title = data.title || '旅行規劃';
+  D.locked = data.locked || false;
+  D.people = data.people || [];
+  D.tips = data.tips || {};
+  D.mapPlaces = data.map_places || [];
+  D.rateKRW = data.rate_krw || 45.5;
+  D.rateJPY = data.rate_jpy || 4.5;
+  D.rateUSD = data.rate_usd || 0.032;
+
+  D.flights = (data.flights||[]).map(f=>({from:f.fr||'',to:f.to||'',date:f.date||'',time:f.time||'',tag:f.tag||'',price:f.price||0}));
+  D.hotels = (data.hotels||[]).map(h=>({name:h.name||'',checkin:h.checkin||'',checkout:h.checkout||'',nights:h.nights||0,price:h.price||0}));
+  D.days = (data.days||[]).map(d=>({date:d.date||'',label:d.label||'',items:(d.items||[]).map(it=>({time:it.time||'',title:it.title||'',note:it.note||'',metro:it.metro||'',naver:it.map_query||''}))}));
+  D.shopping = (data.shopping||[]).map(s=>({name:s.name||'',store:s.store||'',kr:s.kr||0,tw:s.tw||0,bought:s.bought||false,splitWith:s.split_with||[]}));
+  D.fixed = (data.fixed||[]).map(f=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paidBy:f.paid_by||'',splitWith:f.split_with||[]}));
+  D.other = (data.other||[]).map(o=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paidBy:o.paid_by||'',splitWith:o.split_with||[]}));
+
+  if(D.rateKRW) RATES.KRW = 1/D.rateKRW;
+  if(D.rateJPY) RATES.JPY = 1/D.rateJPY;
+  if(D.rateUSD) RATES.USD = 1/D.rateUSD;
+}
+
+// ===== EXPORT / IMPORT =====
+function exportData(){
+  const data={};
+  for(let k in D) data[k]=D[k];
+  data._rate=RATE;
+  data._exported=new Date().toISOString();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(D.title||'travel')+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      for(let k in data){
+        if(k==='_rate') RATE=data[k];
+        else if(k==='_exported') continue;
+        else if(data[k]!==undefined && data[k]!==null) D[k]=data[k];
+      }
+      if(D.rateKRW) RATES.KRW=1/D.rateKRW;
+      if(D.rateJPY) RATES.JPY=1/D.rateJPY;
+      if(D.rateUSD) RATES.USD=1/D.rateUSD;
+      renderAll();
+      alert('匯入成功！');
+    }catch(err){
+      alert('匯入失敗：檔案格式不正確');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+// ===== RENDER =====
+function renderAll(){
+  document.getElementById('mainTitle').value=D.title;
+  document.title=D.title;
+  renderFlights();renderHotels();renderDays();
+  renderShopping();renderBudget();renderWeather();renderMapLinks();renderTips();renderPeople();
+}
+
+// ===== PEOPLE =====
+function renderPeople(){
+  const c=document.getElementById('peopleTags');
+  c.innerHTML=D.people.map((p,i)=>`
+    <span class="person-tag">${escHtml(p)}<span class="x" onclick="removePerson(${i})">×</span></span>
+  `).join('') + `<span class="add-person" onclick="document.getElementById('newPersonInput').focus()">＋</span>`;
+}
+function addPerson(){
+  const inp=document.getElementById('newPersonInput');
+  const name=inp.value.trim();
+  if(!name || D.people.includes(name)) return;
+  D.people.push(name); inp.value=''; renderPeople(); renderBudget(); debouncedSave();
+}
+function removePerson(i){
+  const name=D.people[i];
+  D.people.splice(i,1);
+  D.fixed.forEach(f=>{ if(f.splitWith) f.splitWith=f.splitWith.filter(p=>p!==name) });
+  D.other.forEach(o=>{ if(o.splitWith) o.splitWith=o.splitWith.filter(p=>p!==name) });
+  renderPeople(); renderBudget(); debouncedSave();
+}
+
+// ===== FLIGHTS =====
+function renderFlights(){
+  const c=document.getElementById('flights');
+  c.innerHTML=D.flights.map((f,i)=>`
+    <div class="item" style="margin-bottom:6px">
+      <button class="item-del" onclick="D.flights.splice(${i},1);renderFlights();debouncedSave()">×</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input value="${escHtml(f.from||'')}" onchange="D.flights[${i}].from=this.value;renderFlights();debouncedSave()" placeholder="出發" style="flex:1;min-width:80px">
+        <input value="${escHtml(f.to||'')}" onchange="D.flights[${i}].to=this.value;renderFlights();debouncedSave()" placeholder="抵達" style="flex:1;min-width:80px">
+        <input value="${escHtml(f.date||'')}" onchange="D.flights[${i}].date=this.value;renderFlights();debouncedSave()" placeholder="日期" style="width:70px">
+        <input value="${escHtml(f.time||'')}" onchange="D.flights[${i}].time=this.value;renderFlights();debouncedSave()" placeholder="時間" style="width:100px">
+      </div>
+    </div>
+  `).join('');
+}
+function addFlight(){ D.flights.push({from:'',to:'',date:'',time:'',tag:''}); renderFlights(); debouncedSave(); }
+
+// ===== HOTELS =====
+function renderHotels(){
+  const c=document.getElementById('hotels');
+  c.innerHTML=D.hotels.map((h,i)=>`
+    <div class="item" style="margin-bottom:6px">
+      <button class="item-del" onclick="D.hotels.splice(${i},1);renderHotels();debouncedSave()">×</button>
+      <input value="${escHtml(h.name||'')}" onchange="D.hotels[${i}].name=this.value;debouncedSave()" placeholder="飯店名稱">
+      <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
+        <input value="${escHtml(h.checkin||'')}" onchange="D.hotels[${i}].checkin=this.value;debouncedSave()" placeholder="入住" style="width:70px">
+        <span style="color:var(--sub);font-size:11px;letter-spacing:1px">~</span>
+        <input value="${escHtml(h.checkout||'')}" onchange="D.hotels[${i}].checkout=this.value;debouncedSave()" placeholder="退房" style="width:70px">
+        <span style="color:var(--orange);font-size:13px">💰</span>
+        <input type="number" value="${h.price||0}" onchange="D.hotels[${i}].price=+this.value;renderBudget();debouncedSave()" placeholder="金額" style="width:90px">
+      </div>
+    </div>
+  `).join('');
+}
+function addHotel(){ D.hotels.push({name:'',checkin:'',checkout:'',nights:0,price:0}); renderHotels(); debouncedSave(); }
+
+// ===== DAYS =====
+function renderDays(){
+  const c=document.getElementById('days');
+  c.innerHTML=D.days.map((d,di)=>`
+    <div class="card" style="margin-top:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <button class="item-del" style="position:static" onclick="D.days.splice(${di},1);renderDays();debouncedSave()">×</button>
+        <input value="${escHtml(d.date||'')}" onchange="D.days[${di}].date=this.value;debouncedSave()" style="width:80px;font-weight:700;border:none;background:none;padding:0">
+        <input value="${escHtml(d.label||'')}" onchange="D.days[${di}].label=this.value;debouncedSave()" style="flex:1;font-weight:700;border:none;background:none;padding:0" placeholder="標題">
+      </div>
+      <div id="day-items-${di}"></div>
+      <button class="btn-add" onclick="addItem(${di})">+ 新增景點</button>
+    </div>
+  `).join('');
+  D.days.forEach((d,di)=>{
+    const c=document.getElementById('day-items-'+di);
+    if(!c) return;
+    c.innerHTML=d.items.map((it,ii)=>`
+      <div class="item">
+        <button class="item-del" onclick="D.days[${di}].items.splice(${ii},1);renderDays();debouncedSave()">×</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <input value="${escHtml(it.time||'')}" onchange="D.days[${di}].items[${ii}].time=this.value;debouncedSave()" placeholder="時間" style="width:90px;font-weight:600;color:var(--accent)">
+          <input value="${escHtml(it.title||'')}" onchange="D.days[${di}].items[${ii}].title=this.value;debouncedSave()" placeholder="景點名稱" style="flex:1;min-width:120px;font-weight:600">
+        </div>
+        <div style="margin-top:6px">
+          <input value="${escHtml(it.note||'')}" onchange="D.days[${di}].items[${ii}].note=this.value;debouncedSave()" placeholder="備註" style="font-size:12px;border:none;padding:4px 0;background:none;color:rgb(128,128,128)">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+          <input value="${escHtml(it.metro||'')}" onchange="D.days[${di}].items[${ii}].metro=this.value;debouncedSave()" placeholder="🚇 地鐵站" style="flex:1;min-width:140px;font-size:11px;color:var(--accent)">
+          <input value="${escHtml(it.naver||'')}" onchange="D.days[${di}].items[${ii}].naver=this.value;debouncedSave()" placeholder="Naver搜尋名" style="flex:1;min-width:140px;font-size:11px">
+        </div>
+        ${it.naver?`<a class="naver-btn" href="https://map.naver.com/p/search/${encodeURIComponent(it.naver)}" target="_blank">📍 Naver Map</a>`:''}
+      </div>
+    `).join('');
+  });
+}
+function addItem(di){ D.days[di].items.push({time:'',title:'',note:'',metro:'',naver:''}); renderDays(); debouncedSave(); }
+function addDay(){ D.days.push({date:'',label:'',items:[]}); renderDays(); debouncedSave(); }
+
+// ===== SHOPPING =====
+function renderShopping(){
+  const c=document.getElementById('shopList');
+  let totalTWD=0, totalKRW=0;
+  D.shopping.forEach(s=>{ if(s.bought){ totalTWD+=s.tw; totalKRW+=s.kr }});
+  document.getElementById('shopTotal').textContent='NT$'+totalTWD.toLocaleString();
+  document.getElementById('shopTotalKRW').textContent='₩'+totalKRW.toLocaleString();
+
+  c.innerHTML=D.shopping.map((s,i)=>`
+    <div class="item" style="opacity:${s.bought?0.6:1}">
+      <div class="item-head">
+        <input type="checkbox" class="chk" ${s.bought?'checked':''} onchange="D.shopping[${i}].bought=this.checked;renderShopping();renderBudget();debouncedSave()">
+        <input value="${escHtml(s.name||'')}" onchange="D.shopping[${i}].name=this.value;debouncedSave()" placeholder="品名" style="flex:1;font-weight:600;border:none;padding:0;background:none">
+        <button class="item-del" onclick="D.shopping.splice(${i},1);renderShopping();debouncedSave()">×</button>
+      </div>
+      <div class="item-body">
+        <input value="${escHtml(s.store||'')}" onchange="D.shopping[${i}].store=this.value;debouncedSave()" placeholder="店家" style="font-size:12px">
+        <div class="price-row" style="flex:1;min-width:120px">
+          <span class="price-unit">₩</span>
+          <input type="number" value="${s.kr||0}" onchange="D.shopping[${i}].kr=+this.value;D.shopping[${i}].tw=Math.round(+this.value*${RATE});renderShopping();debouncedSave()" placeholder="韓元" style="font-size:12px">
+        </div>
+        <div class="price-row" style="flex:1;min-width:100px">
+          <span class="price-unit">NT$</span>
+          <input type="number" value="${s.tw||0}" onchange="D.shopping[${i}].tw=+this.value;D.shopping[${i}].kr=Math.round(+this.value/${RATE});renderShopping();debouncedSave()" placeholder="台幣" style="font-size:12px">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function addShopItem(){ D.shopping.push({name:'',store:'',kr:0,tw:0,bought:false}); renderShopping(); debouncedSave(); }
+
+// ===== EXPENSE ITEM RENDERER =====
+function renderExpenseItem(item, type, idx){
+  const name=escHtml(item.name||'');
+  const note=escHtml(item.note||'');
+  const paidBy=item.paidBy||item.paid_by||'';
+  const splitWith=item.splitWith||item.split_with||[];
+  const cur=item.cur||'TWD';
+  const amt=item.amt||0;
+  const tw=cur==='KRW'?Math.round(amt*RATE):amt;
+  const peopleOpts=D.people.map(p=>`<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
+  const paidSel=`<select onchange="D.${type}[${idx}].paidBy=this.value;renderBudget();debouncedSave()" style="font-size:12px;padding:6px 8px;width:auto;min-width:80px"><option value="">付錢</option>${peopleOpts.replace('value="'+escHtml(paidBy)+'"','value="'+escHtml(paidBy)+'" selected')}</select>`;
+  const splitChecks=D.people.map(p=>`<label style="display:inline-flex;align-items:center;gap:3px;font-size:12px;cursor:pointer"><input type="checkbox" class="split-chk" ${splitWith.includes(p)?'checked':''} onchange="toggleSplit('${type}',${idx},this.checked,'${escHtml(p)}')">${escHtml(p)}</label>`).join('');
+
+  return `
+    <div class="item" style="margin-bottom:6px">
+      <button class="item-del" onclick="D.${type}.splice(${idx},1);renderBudget();debouncedSave()">×</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <input value="${name}" onchange="D.${type}[${idx}].name=this.value;debouncedSave()" placeholder="項目" style="flex:1;min-width:80px;font-weight:600">
+        <select onchange="D.${type}[${idx}].cur=this.value;renderBudget();debouncedSave()" style="width:auto;min-width:60px;font-size:12px;padding:6px 8px">
+          <option value="TWD" ${cur==='TWD'?'selected':''}>NT$</option>
+          <option value="KRW" ${cur==='KRW'?'selected':''}>₩ 韓元</option>
+          <option value="JPY" ${cur==='JPY'?'selected':''}>¥ 日圓</option>
+          <option value="USD" ${cur==='USD'?'selected':''}>$ 美金</option>
+        </select>
+        <input type="number" value="${amt}" onchange="D.${type}[${idx}].amt=+this.value;renderBudget();debouncedSave()" placeholder="金額" style="width:90px">
+        <span style="font-size:11px;color:var(--sub)">${cur!=='TWD'?'≈ NT$'+tw.toLocaleString():''}</span>
+        ${paidSel}
+      </div>
+      <input value="${note}" onchange="D.${type}[${idx}].note=this.value;debouncedSave()" placeholder="備註" style="font-size:12px;margin-top:4px;border:none;padding:2px 0;background:none;color:var(--sub)">
+      <div class="split-info">
+        <span class="split-label">分帳</span>
+        ${splitChecks}
+      </div>
+    </div>
+  `;
+}
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toggleSplit(type,idx,checked,person){
+  const item=D[type][idx];
+  if(!item.splitWith) item.splitWith=[];
+  if(checked && !item.splitWith.includes(person)) item.splitWith.push(person);
+  else if(!checked) item.splitWith=item.splitWith.filter(p=>p!==person);
+  renderBudget(); debouncedSave();
+}
+
+// ===== BUDGET =====
+function getAllExpenses(){
+  const items=[];
+  D.fixed.forEach(f=>items.push({...f,src:'fixed'}));
+  D.other.forEach(o=>items.push({...o,src:'other'}));
+  return items;
+}
+function itemTw(item){ const c=item.cur||'TWD'; if(c==='TWD') return (item.amt||0); return Math.round((item.amt||0)*(RATES[c]||1)); }
+function renderBudget(){
+  const fixed=D.fixed.reduce((a,f)=>a+itemTw(f),0);
+  const shopBought=D.shopping.filter(s=>s.bought).reduce((a,s)=>a+s.tw,0);
+  const other=D.other.reduce((a,o)=>a+itemTw(o),0);
+  const total=fixed+shopBought+other;
+  document.getElementById('fixedTotal').textContent='NT$'+fixed.toLocaleString();
+  document.getElementById('shopInBudget').textContent='NT$'+shopBought.toLocaleString();
+  document.getElementById('otherTotal').textContent='NT$'+other.toLocaleString();
+  document.getElementById('budgetTotal').textContent='NT$'+total.toLocaleString();
+
+  const share={};
+  D.people.forEach(p=>share[p]=0);
+  const allItems=[...D.fixed,...D.other];
+  allItems.forEach(item=>{ const tw=itemTw(item); const split=item.splitWith||item.split_with||[]; if(split.length){ const s=tw/split.length; split.forEach(p=>{ if(share[p]!==undefined) share[p]+=s })}});
+  D.shopping.filter(s=>s.bought&&(s.splitWith||s.split_with||[]).length).forEach(item=>{ const tw=item.tw||0; const split=item.splitWith||item.split_with||[]; const s=tw/split.length; split.forEach(p=>{ if(share[p]!==undefined) share[p]+=s })});
+  document.getElementById('personSummaryInBudget').innerHTML=D.people.map(p=>
+    `<div style="font-size:13px;opacity:.9">${escHtml(p)}花費 <b>NT$${Math.round(share[p]||0).toLocaleString()}</b></div>`
+  ).join('');
+
+  document.getElementById('rateKRW').value=D.rateKRW||45.5;
+  document.getElementById('rateJPY').value=D.rateJPY||4.5;
+  document.getElementById('rateUSD').value=D.rateUSD||0.032;
+
+  const c1=document.getElementById('fixedList');
+  c1.innerHTML=D.fixed.map((f,i)=>renderExpenseItem(f,'fixed',i)).join('');
+
+  const c2=document.getElementById('otherList');
+  c2.innerHTML=D.other.map((o,i)=>renderExpenseItem(o,'other',i)).join('');
+
+  renderPeople();
+  calcSettlement();
+  calcPersonSpend();
+}
+function updateRates(){
+  const krw=parseFloat(document.getElementById('rateKRW').value);
+  const jpy=parseFloat(document.getElementById('rateJPY').value);
+  const usd=parseFloat(document.getElementById('rateUSD').value);
+  if(krw>0){ RATES.KRW=1/krw; D.rateKRW=krw; }
+  if(jpy>0){ RATES.JPY=1/jpy; D.rateJPY=jpy; }
+  if(usd>0){ RATES.USD=1/usd; D.rateUSD=usd; }
+  renderBudget(); debouncedSave();
+}
+function addFixed(){ D.fixed.push({name:'',note:'',cur:'TWD',amt:0,paidBy:'',splitWith:[]}); renderBudget(); debouncedSave(); }
+function addOther(){ D.other.push({name:'',note:'',cur:'TWD',amt:0,paidBy:'',splitWith:[]}); renderBudget(); debouncedSave(); }
+
+// ===== SETTLEMENT =====
+function calcSettlement(){
+  const balances={};
+  D.people.forEach(p=>balances[p]=0);
+
+  const allItems=[...D.fixed,...D.other];
+  allItems.forEach(item=>{
+    const tw=itemTw(item);
+    const paid=item.paidBy||item.paid_by;
+    const split=item.splitWith||item.split_with||[];
+    if(!paid||!split.length) return;
+    const share=tw/split.length;
+    if(balances[paid]!==undefined) balances[paid]+=tw;
+    split.forEach(p=>{ if(balances[p]!==undefined) balances[p]-=share });
+  });
+
+  D.shopping.filter(s=>s.bought&&(s.paidBy||s.paid_by)&&(s.splitWith||s.split_with||[]).length).forEach(item=>{
+    const tw=itemTw(item);
+    const paid=item.paidBy||item.paid_by;
+    const split=item.splitWith||item.split_with||[];
+    const share=tw/split.length;
+    if(balances[paid]!==undefined) balances[paid]+=tw;
+    split.forEach(p=>{ if(balances[p]!==undefined) balances[p]-=share });
+  });
+
+  const debtors=[];
+  const creditors=[];
+  for(const p in balances){
+    const b=Math.round(balances[p]);
+    if(b<0) debtors.push({person:p,amount:-b});
+    else if(b>0) creditors.push({person:p,amount:b});
+  }
+  debtors.sort((a,b)=>b.amount-a.amount);
+  creditors.sort((a,b)=>b.amount-a.amount);
+
+  const settlements=[];
+  let di=0, ci=0;
+  while(di<debtors.length && ci<creditors.length){
+    const d=debtors[di], c=creditors[ci];
+    const amt=Math.min(d.amount,c.amount);
+    if(amt>0) settlements.push({from:d.person,to:c.person,amount:amt});
+    d.amount-=amt; c.amount-=amt;
+    if(d.amount===0) di++;
+    if(c.amount===0) ci++;
+  }
+
+  const card=document.getElementById('settleCard');
+  const list=document.getElementById('settleList');
+  if(settlements.length===0){
+    card.style.display='none';
+  }else{
+    card.style.display='';
+    list.innerHTML=settlements.map(s=>`
+      <div class="settle-item">
+        <div>
+          <span style="font-weight:700">${escHtml(s.from)}</span>
+          <span class="settle-arrow">→</span>
+          <span style="font-weight:700">${escHtml(s.to)}</span>
+        </div>
+        <div class="settle-amt">NT$${s.amount.toLocaleString()}</div>
+      </div>
+    `).join('');
+  }
+
+  const summaryHtml=D.people.map(p=>{
+    const b=balances[p]||0;
+    const label=b>0?'<span style="color:#16a34a">可收回</span>':b<0?'<span style="color:#dc2626">需支付</span>':'<span style="color:#888">已結清</span>';
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span><b>${escHtml(p)}</b> ${label}</span><span style="font-weight:700">NT$${Math.abs(b).toLocaleString()}</span></div>`;
+  }).join('');
+  list.innerHTML=summaryHtml+'<div style="margin-top:12px;padding-top:8px;border-top:2px solid var(--border);font-size:14px;font-weight:700">💸 結算</div>'+list.innerHTML;
+}
+
+// ===== PER-PERSON SPENDING =====
+function calcPersonSpend(){
+  const share={};
+  D.people.forEach(p=>share[p]=0);
+
+  const allItems=[...D.fixed,...D.other];
+  allItems.forEach(item=>{
+    const tw=itemTw(item);
+    const split=item.splitWith||item.split_with||[];
+    if(split.length){ const s=tw/split.length; split.forEach(p=>{ if(share[p]!==undefined) share[p]+=s })});
+  });
+  D.shopping.filter(s=>s.bought&&(s.splitWith||s.split_with||[]).length).forEach(item=>{
+    const tw=item.tw||0;
+    const split=item.splitWith||item.split_with||[];
+    const s=tw/split.length; split.forEach(p=>{ if(share[p]!==undefined) share[p]+=s });
+  });
+
+  const c=document.getElementById('personSpendList');
+  c.innerHTML=D.people.map(p=>{
+    const s=Math.round(share[p]||0);
+    return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">
+      <span>${escHtml(p)}花費</span>
+      <span style="font-weight:700">NT$${s.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+}
+
+// ===== WEATHER =====
+function renderWeather(){
+  if(D.days.length){
+    const first=D.days[0].date.match(/(\d{2})\/(\d{2})/);
+    const last=D.days[D.days.length-1].date.match(/(\d{2})\/(\d{2})/);
+    if(first) document.getElementById('wxStartDate').value='2026-'+first[1]+'-'+first[2];
+    if(last) document.getElementById('wxEndDate').value='2026-'+last[1]+'-'+last[2];
+  }
+  fetchWeather();
+}
+async function fetchWeather(){
+  const loc=document.getElementById('wxLocationInput').value.trim()||'Busan';
+  const startStr=document.getElementById('wxStartDate').value;
+  const endStr=document.getElementById('wxEndDate').value;
+  const grid=document.getElementById('wxGrid');
+  const loading=document.getElementById('wxLoading');
+  const error=document.getElementById('wxError');
+  const dressTip=document.getElementById('wxDressTip');
+  grid.innerHTML=''; error.style.display='none'; loading.style.display='block';
+
+  try{
+    if(!startStr||!endStr) throw Error('請選擇起迄日期');
+    if(startStr>endStr) throw Error('起日不能晚於訖日');
+
+    const geoRes=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(loc)+'&count=1&language=en');
+    const geoData=await geoRes.json();
+    if(!geoData.results||!geoData.results.length){ throw Error('找不到地點：'+loc) }
+    const {latitude:lat,longitude:lon}=geoData.results[0];
+
+    const tripDates=[];
+    let cur=new Date(startStr+'T00:00:00');
+    const endD=new Date(endStr+'T00:00:00');
+    while(cur<=endD){
+      const y=cur.getFullYear();
+      const m=String(cur.getMonth()+1).padStart(2,'0');
+      const dd=String(cur.getDate()).padStart(2,'0');
+      tripDates.push(y+'-'+m+'-'+dd);
+      cur.setDate(cur.getDate()+1);
+    }
+
+    const wxRes=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,uv_index_max&timezone=Asia/Seoul&forecast_days=16`);
+    const wxData=await wxRes.json();
+    if(!wxData.daily){ throw Error('無法取得天氣資料') }
+
+    const daily=wxData.daily;
+    const availDates=new Set(daily.time);
+    const wmoIcons={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌧️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+    const wmoDescs={0:'晴',1:'晴時多雲',2:'多雲',3:'陰天',45:'霧',48:'霧',51:'小雨',53:'中雨',55:'大雨',61:'小雨',63:'中雨',65:'大雨',71:'小雪',73:'中雪',75:'大雪',80:'陣雨',81:'中雨',82:'暴雨',95:'雷雨',96:'雷雨冰雹',99:'雷雨冰雹'};
+    const dayNames=['日','一','二','三','四','五','六'];
+
+    grid.innerHTML=tripDates.map(t=>{
+      const d=new Date(t+'T00:00:00');
+      const dayName=dayNames[d.getDay()];
+      const dateStr=(d.getMonth()+1)+'/'+d.getDate();
+      if(availDates.has(t)){
+        const i=daily.time.indexOf(t);
+        const code=daily.weather_code[i];
+        const icon=wmoIcons[code]||'🌡️';
+        const desc=wmoDescs[code]||'未知';
+        const hi=Math.round(daily.temperature_2m_max[i]);
+        const lo=Math.round(daily.temperature_2m_min[i]);
+        const rain=daily.precipitation_probability_max[i]||0;
+        return `<div class="wx"><div class="wx-day">${dayName}</div><div class="wx-date">${dateStr}</div><div class="wx-icon">${icon}</div><div class="wx-temp">${hi}° / ${lo}°</div><div class="wx-desc">${desc}</div>${rain>0?`<div style="font-size:10px;color:var(--accent);margin-top:2px">💧${rain}%</div>`:''}</div>`;
+      }else{
+        return `<div class="wx" style="opacity:.5"><div class="wx-day">${dayName}</div><div class="wx-date">${dateStr}</div><div class="wx-icon">⏳</div><div class="wx-temp" style="color:var(--sub)">—° / —°</div><div class="wx-desc">尚無預報</div></div>`;
+      }
+    }).join('');
+
+    const matchedIdx=tripDates.filter(t=>availDates.has(t)).map(t=>daily.time.indexOf(t));
+    const matchedHi=matchedIdx.map(i=>daily.temperature_2m_max[i]);
+    const matchedLo=matchedIdx.map(i=>daily.temperature_2m_min[i]);
+    const matchedWind=matchedIdx.map(i=>daily.wind_speed_10m_max[i]||0);
+    const matchedUV=matchedIdx.map(i=>daily.uv_index_max[i]||0);
+    const matchedRain=matchedIdx.map(i=>daily.precipitation_probability_max[i]||0);
+    const avgHi=matchedHi.length?Math.round(matchedHi.reduce((a,b)=>a+b,0)/matchedHi.length):25;
+    const avgLo=matchedLo.length?Math.round(matchedLo.reduce((a,b)=>a+b,0)/matchedLo.length):20;
+    const maxWind=matchedWind.length?Math.round(Math.max(...matchedWind)):0;
+    const maxUV=matchedUV.length?Math.round(Math.max(...matchedUV)):0;
+    const maxRain=matchedRain.length?Math.max(...matchedRain):0;
+    const hasRain=maxRain>40;
+    const hasHeavyRain=maxRain>70;
+    const hasStrongWind=maxWind>30;
+
+    let tips=[];
+    if(avgHi>=30) tips.push('• 白天炎熱（'+avgHi+'°C），短袖短褲即可，注意防中暑');
+    else if(avgHi>=27) tips.push('• 白天較熱（'+avgHi+'°C），短袖為主');
+    else if(avgHi>=24) tips.push('• 白天溫暖（'+avgHi+'°C），短袖 + 薄外套');
+    else if(avgHi>=20) tips.push('• 白天舒適（'+avgHi+'°C），長袖或薄外套');
+    else tips.push('• 白天偏涼（'+avgHi+'°C），建議穿外套');
+
+    if(avgLo<=15) tips.push('• 早晚偏冷（'+avgLo+'°C），厚外套必帶');
+    else if(avgLo<=18) tips.push('• 早晚偏涼（'+avgLo+'°C），薄外套或針織衫');
+    else if(avgLo<=22) tips.push('• 早晚舒適（'+avgLo+'°C），薄長袖即可');
+    else tips.push('• 早晚溫暖（'+avgLo+'°C），短袖也OK');
+
+    if(hasHeavyRain) tips.push('• 多日有大雨機率（'+maxRain+'%），雨傘+防水外套必帶');
+    else if(hasRain) tips.push('• 有降雨機率（'+maxRain+'%），帶摺疊傘');
+
+    if(hasStrongWind) tips.push('• 風速較強（'+maxWind+'km/h），外套選防風款式');
+
+    if(maxUV>=8) tips.push('• 紫外線極強（UV '+maxUV+'），防曬SPF50+必備、戴帽子墨鏡');
+    else if(maxUV>=6) tips.push('• 紫外線強（UV '+maxUV+'），建議防曬+帽子');
+    else if(maxUV>=3) tips.push('• 紫外線中等（UV '+maxUV+'），可適量防曬');
+
+    dressTip.innerHTML=tips.join('<br>');
+
+  }catch(e){
+    error.textContent=e.message; error.style.display='';
+    dressTip.innerHTML='• 白天：短袖 + 薄外套（25-26°C）<br>• 早晚：薄外套或針織衫（19-21°C）<br>• 雨天：摺疊傘必帶<br>• 防曬 SPF50+、帽子、墨鏡<br>• 穿舒適鞋子（多斜坡）';
+  }finally{
+    loading.style.display='none';
+  }
+}
+
+// ===== MAP =====
+function renderMapLinks(){
+  document.getElementById('mapLinks').innerHTML=D.mapPlaces.map(p=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${escHtml(p.name||'')}</div>
+        <div style="font-size:12px;color:var(--sub)">🚇 ${escHtml(p.metro||'')}</div>
+      </div>
+      <a class="naver-btn" href="https://map.naver.com/p/search/${encodeURIComponent(p.naver||'')}" target="_blank" style="padding:8px 14px;font-size:13px">📍 導航</a>
+    </div>
+  `).join('');
+}
+function doMapSearch(){
+  const q=document.getElementById('mapSearchInput').value.trim();
+  if(!q) return;
+  const c=document.getElementById('mapSearchResult');
+  const naverUrl='https://map.naver.com/p/search/'+encodeURIComponent(q);
+  const googleUrl='https://www.google.com/maps/search/'+encodeURIComponent(q);
+  c.innerHTML=`
+    <div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:4px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">🔍 「${escHtml(q)}」</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <a class="naver-btn" href="${naverUrl}" target="_blank" style="flex:1;justify-content:center;min-width:120px">📍 Naver Map</a>
+        <a href="${googleUrl}" target="_blank" style="flex:1;justify-content:center;min-width:120px;display:inline-flex;align-items:center;gap:4px;padding:8px 14px;background:#4285f4;color:#fff;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none">📍 Google Map</a>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--sub)">點擊上方按鈕在地圖 App 中開啟導航</div>
+    </div>
+  `;
+}
+
+// ===== TIPS =====
+function renderTips(){
+  ['tipTransport','tipApps','tipFood','tipPhoto','tipWarn'].forEach(id=>{
+    const el=document.getElementById(id);
+    const key='tip_'+id;
+    if(D.tips[key]) el.innerHTML=D.tips[key];
+    el.addEventListener('blur',()=>{ D.tips[key]=el.innerHTML; debouncedSave(); });
+  });
+}
+
+// ===== TABS =====
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('p-'+t.dataset.p).classList.add('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+});
+
+// ===== LOCK =====
+function toggleLock(){
+  D.locked=!D.locked; applyLock(); debouncedSave();
+}
+function applyLock(){
+  const btn=document.getElementById('lockBtn');
+  if(D.locked){
+    document.body.classList.add('locked');
+    btn.textContent='🔒'; btn.classList.add('locked');
+  }else{
+    document.body.classList.remove('locked');
+    btn.textContent='🔓'; btn.classList.remove('locked');
+  }
+  compactItems();
+}
+function compactItems(){
+  document.querySelectorAll('.item').forEach(el=>{
+    el.querySelectorAll('.cmpt,.tag-sm').forEach(t=>t.remove());
+    el.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]):not(#mainTitle):not(#newPersonInput)').forEach(inp=>{ inp.style.display=''; });
+    el.querySelectorAll('select').forEach(sel=>{ sel.style.display=''; });
+  });
+  if(!D.locked) return;
+  document.querySelectorAll('.item').forEach(el=>{
+    const inputs=el.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]):not(#mainTitle):not(#newPersonInput)');
+    const selects=el.querySelectorAll('select');
+    inputs.forEach(inp=>{
+      const v=inp.value||'';
+      if(v){
+        const tag=document.createElement('span');
+        tag.className='cmpt';
+        tag.textContent=v;
+        if(inp.style.color && inp.style.color!=='var(--sub)') tag.style.color=inp.style.color;
+        if(inp.style.fontWeight==='700'||inp.style.fontWeight==='bold') tag.style.fontWeight='700';
+        inp.parentNode.insertBefore(tag,inp);
+      }
+      inp.style.display='none';
+    });
+    selects.forEach(sel=>{
+      const v=sel.options[sel.selectedIndex]?.text||'';
+      if(v && v!=='付錢'){
+        const tag=document.createElement('span');
+        tag.className='cmpt tag-sm';
+        tag.textContent=v;
+        sel.parentNode.insertBefore(tag,sel);
+      }
+      sel.style.display='none';
+    });
+  });
+}
+
+// ===== INIT =====
+(async function(){
+  try{
+    if(!getToken()){
+      window.location.href='/';
+      return;
+    }
+    const planId = getPlanId();
+    if(!planId){
+      await showPlanSelector();
+      return;
+    }
+    document.getElementById('loadingScreen').style.display='flex';
+    await loadPlan();
+    document.getElementById('loadingScreen').style.display='none';
+    document.getElementById('appContent').style.display='block';
+    renderAll();
+    applyLock();
+  }catch(e){
+    document.body.innerHTML='<div style="padding:20px;color:red"><h3>JavaScript 錯誤</h3><pre>'+e.message+'</pre></div>';
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>

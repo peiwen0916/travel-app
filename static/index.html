@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>旅行規劃</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--sub:#86868b;--accent:#0071e3;--border:#e5e5e5;--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.container{width:100%;max-width:360px}
+.logo{text-align:center;margin-bottom:32px}
+.logo h1{font-size:28px;font-weight:700;margin-bottom:4px}
+.logo p{font-size:14px;color:var(--sub)}
+.card{background:var(--card);border-radius:var(--radius);padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card h2{font-size:18px;font-weight:700;margin-bottom:16px}
+.input{width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:15px;margin-bottom:12px;outline:none;transition:border .2s}
+.input:focus{border-color:var(--accent)}
+.btn{width:100%;padding:12px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn:active{opacity:.8}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:none;color:var(--accent);border:1px solid var(--accent);margin-top:8px}
+.error{color:#dc2626;font-size:13px;margin-bottom:12px;display:none}
+.tabs{display:flex;gap:0;margin-bottom:16px;background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tab{flex:1;padding:12px;border:none;background:var(--card);font-size:14px;font-weight:600;cursor:pointer;color:var(--sub);transition:all .2s}
+.tab.on{background:var(--accent);color:#fff}
+.page{display:none}.page.on{display:block}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <h1>✈️ 旅行規劃</h1>
+    <p>多人協作旅行管理</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('login')">登入</button>
+    <button class="tab" onclick="showTab('register')">註冊</button>
+  </div>
+
+  <div class="card">
+    <div id="error" class="error"></div>
+
+    <div id="page-login" class="page on">
+      <div class="input" style="margin-bottom:12px">
+        <input id="loginUser" placeholder="帳號" style="width:100%;border:none;outline:none;font-size:15px">
+      </div>
+      <div class="input" style="margin-bottom:12px">
+        <input id="loginPass" type="password" placeholder="密碼" style="width:100%;border:none;outline:none;font-size:15px">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">登入</button>
+    </div>
+
+    <div id="page-register" class="page">
+      <div class="input" style="margin-bottom:12px">
+        <input id="regUser" placeholder="帳號" style="width:100%;border:none;outline:none;font-size:15px">
+      </div>
+      <div class="input" style="margin-bottom:12px">
+        <input id="regPass" type="password" placeholder="密碼" style="width:100%;border:none;outline:none;font-size:15px">
+      </div>
+      <div class="input" style="margin-bottom:12px">
+        <input id="regPass2" type="password" placeholder="確認密碼" style="width:100%;border:none;outline:none;font-size:15px">
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()">註冊</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',i===(t==='login'?0:1)));
+  document.getElementById('page-login').classList.toggle('on',t==='login');
+  document.getElementById('page-register').classList.toggle('on',t==='register');
+  document.getElementById('error').style.display='none';
+}
+
+function showError(msg){
+  const e=document.getElementById('error');
+  e.textContent=msg;
+  e.style.display='block';
+}
+
+async function doLogin(){
+  const username=document.getElementById('loginUser').value.trim();
+  const password=document.getElementById('loginPass').value;
+  if(!username||!password)return showError('請填寫帳號和密碼');
+  try{
+    const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data=await res.json();
+    if(!res.ok)return showError(data.detail||'登入失敗');
+    localStorage.setItem('token',data.access_token);
+    localStorage.setItem('username',username);
+    window.location.href='/app';
+  }catch(e){showError('網路錯誤')}
+}
+
+async function doRegister(){
+  const username=document.getElementById('regUser').value.trim();
+  const password=document.getElementById('regPass').value;
+  const password2=document.getElementById('regPass2').value;
+  if(!username||!password)return showError('請填寫帳號和密碼');
+  if(password!==password2)return showError('兩次密碼不一致');
+  if(password.length<4)return showError('密碼至少4個字元');
+  try{
+    const res=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data=await res.json();
+    if(!res.ok)return showError(data.detail||'註冊失敗');
+    localStorage.setItem('token',data.access_token);
+    localStorage.setItem('username',username);
+    window.location.href='/app';
+  }catch(e){showError('網路錯誤')}
+}
+
+// Enter key support
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('regPass2').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister()});
+
+// Auto redirect if logged in
+if(localStorage.getItem('token'))window.location.href='/app';
+</script>
+</body>
+</html>
