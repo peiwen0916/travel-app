@@ -83,7 +83,7 @@ textarea{resize:vertical;min-height:60px}
 .settle-amt{font-weight:700;color:var(--red)}
 
 .naver-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#03c75a;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;margin-top:4px}
-.lock-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--sub);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.lock-btn{height:36px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--sub);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;padding:0 6px;min-width:36px}
 .lock-btn.locked{background:#fef2f2;color:var(--red);border-color:#fecaca}
 .menu-item{padding:10px 16px;font-size:13px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border)}
 .menu-item:last-child{border-bottom:none}
@@ -439,7 +439,7 @@ function debouncedSave(){
   snapshotForUndo();
   isDirty=true;
   const btn=document.getElementById('saveBtn');
-  if(btn){btn.textContent='💾 ⚠️';btn.style.color='orange';}
+  if(btn){btn.textContent='💾';btn.style.color='orange';}
 }
 function debouncedSaveNoSnap(){
 }
@@ -448,7 +448,7 @@ async function saveToApi(){
   const planId = getPlanId();
   if(!planId) return;
   const btn=document.getElementById('saveBtn');
-  if(btn){btn.textContent='💾 ⚠️';btn.style.color='orange';}
+  if(btn){btn.textContent='⏳';btn.style.color='#999';}
 
   const planData = {
     title: D.title,
@@ -468,7 +468,7 @@ async function saveToApi(){
   await api('/api/plans/'+planId+'/fixed', 'PUT', D.fixed.map((f,i)=>({name:f.name||'',note:f.note||'',cur:f.cur||'TWD',amt:f.amt||0,paid_by:f.paidBy||f.paid_by||'',split_with:f.splitWith||f.split_with||[],order:i})));
   await api('/api/plans/'+planId+'/other', 'PUT', D.other.map((o,i)=>({name:o.name||'',note:o.note||'',cur:o.cur||'TWD',amt:o.amt||0,paid_by:o.paidBy||o.paid_by||'',split_with:o.splitWith||o.split_with||[],order:i})));
   isDirty=false;
-  if(btn){btn.textContent='✅ 已儲存';btn.style.color='var(--green)';setTimeout(()=>{btn.textContent='💾';btn.style.color='var(--green)';},2000);}
+  if(btn){btn.textContent='✅';btn.style.color='var(--green)';setTimeout(()=>{btn.textContent='💾';btn.style.color='var(--green)';},2000);}
 }
 
 // ===== PLAN SELECTOR =====
