@@ -386,7 +386,9 @@ async function api(path, method='GET', body=null){
   if(body) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
   if(res.status===401){ localStorage.clear(); window.location.href='/'; return null; }
-  return res.json();
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.detail||'請求失敗');
+  return data;
 }
 
 // ===== AUTO-SAVE (debounced) =====
@@ -548,8 +550,10 @@ async function addShare(){
 async function removeShare(username){
   if(!confirm('確定要移除 '+username+' 的存取權限嗎？')) return;
   const planId = getPlanId();
-  await api('/api/plans/'+planId+'/share/'+username, 'DELETE');
-  showShareModal();
+  try {
+    await api('/api/plans/'+planId+'/share/'+username, 'DELETE');
+    showShareModal();
+  } catch(e) { alert('移除失敗：'+e.message); }
 }
 async function showAdminPanel(){
   const list = document.getElementById('planList');
