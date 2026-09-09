@@ -803,9 +803,10 @@ function renderFlights(){
           <input type="date" value="${f.date||''}" onchange="D.flights[${i}].date=this.value;debouncedSave()" style="width:120px;font-size:12px;flex-shrink:0">
         </div>
         <div style="display:flex;gap:4px;align-items:center">
-          <input value="${escHtml(dt)}" onchange="D.flights[${i}].time=this.value+'→'+(D.flights[${i}].time.split('→')[1]||'');debouncedSave()" placeholder="出發時間" style="flex:1;min-width:0;font-size:12px;color:var(--accent)">
+          <input value="${escHtml(dt)}" onchange="D.flights[${i}].time=this.value+'→'+(D.flights[${i}].time.split('→')[1]||'');debouncedSave()" placeholder="出發時間" style="width:70px;font-size:12px;color:var(--accent)">
           <span style="color:var(--sub);flex-shrink:0">→</span>
-          <input value="${escHtml(at)}" onchange="D.flights[${i}].time=(D.flights[${i}].time.split('→')[0]||'')+'→'+this.value;debouncedSave()" placeholder="抵達時間" style="flex:1;min-width:0;font-size:12px;color:var(--accent)">
+          <div style="flex:1"></div>
+          <input value="${escHtml(at)}" onchange="D.flights[${i}].time=(D.flights[${i}].time.split('→')[0]||'')+'→'+this.value;debouncedSave()" placeholder="抵達時間" style="width:70px;font-size:12px;color:var(--accent);text-align:right">
         </div>
       </div>
     </div>`;
@@ -821,9 +822,9 @@ function renderHotels(){
       <button class="item-del" onclick="snapBefore();D.hotels.splice(${i},1);renderHotels();debouncedSave()">×</button>
       <input value="${escHtml(h.name||'')}" onchange="D.hotels[${i}].name=this.value;debouncedSave()" placeholder="飯店名稱">
       <div style="display:flex;gap:4px;align-items:center;margin-top:4px">
-        <input type="date" value="${h.checkin||''}" onchange="D.hotels[${i}].checkin=this.value;debouncedSave()" style="width:120px;font-size:12px">
+        <input type="date" value="${h.checkin||''}" onchange="D.hotels[${i}].checkin=this.value;debouncedSave()" style="width:120px;font-size:12px;padding-left:0">
         <span style="color:var(--sub);font-size:12px">~</span>
-        <input type="date" value="${h.checkout||''}" onchange="D.hotels[${i}].checkout=this.value;debouncedSave()" style="width:120px;font-size:12px">
+        <input type="date" value="${h.checkout||''}" onchange="D.hotels[${i}].checkout=this.value;debouncedSave()" style="width:120px;font-size:12px;padding-left:0">
       </div>
     </div>
   `).join('');
