@@ -201,13 +201,13 @@ body.locked .item .split-info{width:100%}
   </div>
 
   <div id="shareModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <form novalidate onsubmit="return false" style="background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
       <div style="font-size:16px;font-weight:700;margin-bottom:16px">👥 共享行程</div>
       <div id="shareContent" style="font-size:13px;color:var(--text);line-height:1.8">
         載入中...
       </div>
-      <button onclick="document.getElementById('shareModal').style.display='none'" style="margin-top:16px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer">關閉</button>
-    </div>
+      <button type="button" onclick="document.getElementById('shareModal').style.display='none'" style="margin-top:16px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer">關閉</button>
+    </form>
   </div>
 
   <div id="adminModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
@@ -594,8 +594,8 @@ async function showShareModal(){
       });
     }
     html += '<div style="margin-top:12px"><b>新增共享：</b></div>';
-    html += '<div style="margin-top:4px"><input id="shareUsername" placeholder="輸入對方帳號" style="width:100%;margin-bottom:6px;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:6px"></div>';
-    html += '<div style="display:flex;gap:6px"><select id="sharePerm" style="font-size:12px;padding:4px;border:1px solid var(--border);border-radius:4px;flex:1"><option value="edit">可編輯</option><option value="readonly">唯讀</option></select><button class="btn btn-sm btn-primary" onclick="addShare()">邀請</button></div>';
+    html += '<div style="margin-top:4px"><input id="shareUsername" placeholder="輸入對方帳號" autocomplete="off" novalidate style="width:100%;margin-bottom:6px;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:6px"></div>';
+    html += '<div style="display:flex;gap:6px"><select id="sharePerm" style="font-size:12px;padding:4px;border:1px solid var(--border);border-radius:4px;flex:1"><option value="edit">可編輯</option><option value="readonly">唯讀</option></select><button type="button" class="btn btn-sm btn-primary" onclick="addShare()">邀請</button></div>';
     content.innerHTML = html;
   } catch(e) {
     content.innerHTML = '<div style="color:red">載入失敗：'+e.message+'</div>';
