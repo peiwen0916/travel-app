@@ -795,18 +795,19 @@ function renderFlights(){
     return `
     <div class="item" style="margin-bottom:6px">
       <button class="item-del" onclick="snapBefore();D.flights.splice(${i},1);renderFlights();debouncedSave()">×</button>
-      <div style="display:flex;flex-direction:column;gap:4px;width:100%">
+      <div style="display:flex;flex-direction:column;gap:2px;width:100%">
+        <div style="display:flex;justify-content:flex-end">
+          <input type="date" value="${f.date||''}" onchange="D.flights[${i}].date=this.value;debouncedSave()" style="width:130px;font-size:12px;font-weight:600;border:none;background:none;padding:0;text-align:right">
+        </div>
         <div style="display:flex;gap:4px;align-items:center">
           <input value="${escHtml(f.from||'')}" onchange="D.flights[${i}].from=this.value;debouncedSave()" placeholder="出發" style="flex:1;min-width:0;font-weight:600">
           <span style="color:var(--sub);flex-shrink:0">→</span>
           <input value="${escHtml(f.to||'')}" onchange="D.flights[${i}].to=this.value;debouncedSave()" placeholder="抵達" style="flex:1;min-width:0;font-weight:600">
-          <input type="date" value="${f.date||''}" onchange="D.flights[${i}].date=this.value;debouncedSave()" style="width:120px;font-size:12px;flex-shrink:0">
         </div>
         <div style="display:flex;gap:4px;align-items:center">
-          <input value="${escHtml(dt)}" onchange="D.flights[${i}].time=this.value+'→'+(D.flights[${i}].time.split('→')[1]||'');debouncedSave()" placeholder="出發時間" style="width:70px;font-size:12px;color:var(--accent)">
+          <input value="${escHtml(dt)}" onchange="D.flights[${i}].time=this.value+'→'+(D.flights[${i}].time.split('→')[1]||'');debouncedSave()" placeholder="出發時間" style="width:60px;font-size:12px;color:var(--accent)">
           <span style="color:var(--sub);flex-shrink:0">→</span>
-          <div style="flex:1"></div>
-          <input value="${escHtml(at)}" onchange="D.flights[${i}].time=(D.flights[${i}].time.split('→')[0]||'')+'→'+this.value;debouncedSave()" placeholder="抵達時間" style="width:70px;font-size:12px;color:var(--accent);text-align:right">
+          <input value="${escHtml(at)}" onchange="D.flights[${i}].time=(D.flights[${i}].time.split('→')[0]||'')+'→'+this.value;debouncedSave()" placeholder="抵達時間" style="width:60px;font-size:12px;color:var(--accent)">
         </div>
       </div>
     </div>`;
@@ -853,8 +854,8 @@ function renderDays(){
     c.innerHTML=d.items.map((it,ii)=>`
       <div class="item">
         <div style="display:flex;align-items:center;gap:2px">
-          <button class="item-del" style="font-size:10px;width:18px;height:18px;${ii===0?'visibility:hidden':''}" onclick="moveItem(${di},${ii},-1)">▲</button>
-          <button class="item-del" style="font-size:10px;width:18px;height:18px;${ii===d.items.length-1?'visibility:hidden':''}" onclick="moveItem(${di},${ii},1)">▼</button>
+          <button class="item-del" style="font-size:12px;width:28px;height:28px;${ii===0?'visibility:hidden':''}" onclick="moveItem(${di},${ii},-1)">▲</button>
+          <button class="item-del" style="font-size:12px;width:28px;height:28px;${ii===d.items.length-1?'visibility:hidden':''}" onclick="moveItem(${di},${ii},1)">▼</button>
           <button class="item-del" onclick="snapBefore();D.days[${di}].items.splice(${ii},1);renderDays();debouncedSave()">×</button>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -866,9 +867,9 @@ function renderDays(){
         </div>
         <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
           <input value="${escHtml(it.metro||'')}" onchange="D.days[${di}].items[${ii}].metro=this.value;debouncedSave()" placeholder="🚇 地鐵站" style="flex:1;min-width:140px;font-size:11px;color:var(--accent)">
-          <input value="${escHtml(it.naver||'')}" onchange="D.days[${di}].items[${ii}].naver=this.value;debouncedSave()" placeholder="Naver搜尋名" style="flex:1;min-width:140px;font-size:11px">
+          <input value="${escHtml(it.naver||'')}" onchange="D.days[${di}].items[${ii}].naver=this.value;debouncedSave()" placeholder="Maps🔗" style="flex:1;min-width:140px;font-size:11px">
         </div>
-        ${it.naver?`<a class="naver-btn" href="https://map.naver.com/p/search/${encodeURIComponent(it.naver)}" target="_blank">📍 Naver Map</a>`:''}
+        ${it.naver?`<a class="naver-btn" href="https://map.naver.com/p/search/${encodeURIComponent(it.naver)}" target="_blank">📍 Maps</a>`:''}
       </div>
     `).join('');
   });
@@ -1176,10 +1177,10 @@ function calcPersonSpend(){
 // ===== WEATHER =====
 function renderWeather(){
   if(D.days.length){
-    const first=D.days[0].date.match(/(\d{2})\/(\d{2})/);
-    const last=D.days[D.days.length-1].date.match(/(\d{2})\/(\d{2})/);
-    if(first) document.getElementById('wxStartDate').value='2026-'+first[1]+'-'+first[2];
-    if(last) document.getElementById('wxEndDate').value='2026-'+last[1]+'-'+last[2];
+    const first=D.days[0].date;
+    const last=D.days[D.days.length-1].date;
+    if(first) document.getElementById('wxStartDate').value=first;
+    if(last) document.getElementById('wxEndDate').value=last;
   }
   fetchWeather();
 }
