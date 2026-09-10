@@ -436,7 +436,7 @@ def update_shopping(plan_id: int, items: List[ShoppingData], user: User = Depend
     plan = get_user_plan(plan_id, user.id, db)
     db.query(ShoppingItem).filter(ShoppingItem.plan_id == plan_id).delete()
     for i, item in enumerate(items):
-        db.add(ShoppingItem(plan_id=plan_id, name=item.name, store=item.store, kr=item.kr, tw=item.tw, bought=item.bought, split_with=item.split_with, order=i))
+        db.add(ShoppingItem(plan_id=plan_id, name=item.name, store=item.store, kr=item.kr, tw=item.tw, bought=item.bought, split_with=item.split_with, order=i, cur=item.cur, jpy=item.jpy, usd=item.usd, photo=item.photo, date=item.date))
     db.commit()
     return {"ok": True}
 
